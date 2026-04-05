@@ -3,6 +3,11 @@ target/
 *.class
 *.jar
 *.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
@@ -18,7 +23,7 @@ uploads/
 .classpath
 .project
 .settings/
-*.vscode/
+.vscode/
 
 # ── Node / Vite ───────────────────────────────
 node_modules/
@@ -34,3 +39,9 @@ Thumbs.db
 # ── Logs ─────────────────────────────────────
 *.log
 logs/
+hs_err_pid*
+replay_pid*
+
+# ── Other ────────────────────────────────────
+*.ctxt
+.mtj.tmp/
