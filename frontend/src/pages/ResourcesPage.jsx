@@ -13,6 +13,7 @@ export default function ResourcesPage() {
   const [loading,   setLoading]    = useState(true)
   const [search,    setSearch]     = useState('')
   const [typeFilter, setTypeFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
   const [showModal, setShowModal]  = useState(false)
   const [editing,   setEditing]    = useState(null)
 
@@ -30,10 +31,11 @@ export default function ResourcesPage() {
 
   useEffect(() => {
     let list = resources
-    if (search)     list = list.filter(r => r.name.toLowerCase().includes(search.toLowerCase()))
-    if (typeFilter) list = list.filter(r => r.type === typeFilter)
+    if (search)       list = list.filter(r => r.name.toLowerCase().includes(search.toLowerCase()))
+    if (typeFilter)   list = list.filter(r => r.type === typeFilter)
+    if (statusFilter) list = list.filter(r => r.status === statusFilter)
     setFiltered(list)
-  }, [search, typeFilter, resources])
+  }, [search, typeFilter, statusFilter, resources])
 
   const handleSubmit = async (data) => {
     try {
@@ -59,7 +61,8 @@ export default function ResourcesPage() {
     } catch (err) { toast.error(err.message) }
   }
 
-  const TYPES = ['LECTURE_HALL', 'LAB', 'MEETING_ROOM', 'SPORTS', 'STUDY_ROOM', 'AUDITORIUM', 'OTHER']
+  const TYPES    = ['LECTURE_HALL', 'LAB', 'MEETING_ROOM', 'SPORTS', 'STUDY_ROOM', 'AUDITORIUM', 'OTHER']
+  const STATUSES = ['AVAILABLE', 'OCCUPIED', 'MAINTENANCE', 'RETIRED']
 
   return (
     <div>
@@ -83,6 +86,10 @@ export default function ResourcesPage() {
         <select className="filter-select" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
           <option value="">All Types</option>
           {TYPES.map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
+        </select>
+        <select className="filter-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+          <option value="">All Statuses</option>
+          {STATUSES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
         </select>
       </div>
 
