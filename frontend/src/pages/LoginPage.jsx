@@ -27,7 +27,7 @@ export default function LoginPage() {
       login(res.data)
       navigate('/dashboard')
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Check your email.')
+      setError(err.message || 'Login failed. Check your email.')
     } finally {
       setLoading(false)
     }
@@ -41,7 +41,7 @@ export default function LoginPage() {
       login(res.data)
       navigate('/dashboard')
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed.')
+      setError(err.message || 'Login failed.')
     } finally {
       setLoading(false)
     }

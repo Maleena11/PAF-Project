@@ -53,12 +53,21 @@ public class TicketService {
 
         Ticket saved = ticketRepository.save(ticket);
 
-        // Notify admins (simplified: notify submitter)
+        // Notify the submitter
         notificationService.createNotification(user,
                 "Ticket Submitted",
                 "Your ticket '" + ticket.getTitle() + "' (#" + saved.getId() + ") has been submitted.",
                 NotificationType.TICKET,
                 saved.getId());
+
+        // Notify all admins
+        userRepository.findByRole(User.Role.ADMIN).forEach(admin ->
+                notificationService.createNotification(admin,
+                        "New Ticket Submitted",
+                        user.getName() + " submitted ticket #" + saved.getId() + ": \"" + ticket.getTitle() + "\"",
+                        NotificationType.TICKET,
+                        saved.getId())
+        );
 
         return saved;
     }
@@ -108,6 +117,19 @@ public class TicketService {
 
         ticket.getComments().add(comment);
         ticketRepository.save(ticket);
+
+        // Notify the ticket owner when someone else comments
+        if (!user.getId().equals(ticket.getUser().getId())) {
+            String preview = content.length() > 60 ? content.substring(0, 60) + "..." : content;
+            notificationService.createNotification(
+                    ticket.getUser(),
+                    "New Comment on Ticket #" + ticketId,
+                    user.getName() + " commented: \"" + preview + "\"",
+                    NotificationType.TICKET,
+                    ticketId
+            );
+        }
+
         return comment;
     }
 
