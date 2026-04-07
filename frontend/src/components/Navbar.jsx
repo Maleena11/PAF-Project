@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Building2, CalendarCheck, Ticket, Bell, LogOut } from 'lucide-react'
+import { LayoutDashboard, Building2, CalendarCheck, Ticket, Bell, LogOut, Users } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 
@@ -24,12 +24,18 @@ export default function Navbar() {
     ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
     : '?'
 
+  const isAdmin = user?.role === 'ADMIN'
+
   const links = [
     { to: '/dashboard',      icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/resources',      icon: Building2,       label: 'Resources' },
     { to: '/bookings',       icon: CalendarCheck,   label: 'Bookings' },
     { to: '/tickets',        icon: Ticket,          label: 'Tickets' },
     { to: '/notifications',  icon: Bell,            label: 'Notifications', badge: unreadCount },
+  ]
+
+  const adminLinks = [
+    { to: '/admin/users',    icon: Users,           label: 'User Management' },
   ]
 
   return (
@@ -59,6 +65,24 @@ export default function Navbar() {
             {label}
           </NavLink>
         ))}
+
+        {isAdmin && (
+          <>
+            <div style={{
+              fontSize: 10, fontWeight: 700, color: '#94a3b8',
+              textTransform: 'uppercase', letterSpacing: '0.08em',
+              padding: '12px 16px 4px',
+            }}>
+              Admin
+            </div>
+            {adminLinks.map(({ to, icon: Icon, label }) => (
+              <NavLink key={to} to={to} className={({ isActive }) => isActive ? 'active' : ''}>
+                <Icon size={18} />
+                {label}
+              </NavLink>
+            ))}
+          </>
+        )}
       </nav>
 
       <div className="sidebar-footer">

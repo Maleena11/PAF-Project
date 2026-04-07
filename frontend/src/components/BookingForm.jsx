@@ -5,7 +5,7 @@ import waitlistService from '../services/waitlistService'
 import { useAuth } from '../context/AuthContext'
 import TimeSlotPicker from './TimeSlotPicker'
 
-export default function BookingForm({ onSubmit, onCancel }) {
+export default function BookingForm({ onSubmit, onCancel, initialData = null }) {
   const { user } = useAuth()
   const [resources, setResources] = useState([])
   const [availability, setAvailability] = useState(null) // null | true | false
@@ -16,6 +16,15 @@ export default function BookingForm({ onSubmit, onCancel }) {
   const [waitlistSlot, setWaitlistSlot] = useState(null)
 
   const [form, setForm] = useState({
+
+    resourceId:        initialData?.resourceId        ? String(initialData.resourceId) : '',
+    title:             initialData?.title             || '',
+    purpose:           initialData?.purpose           || '',
+    expectedAttendees: initialData?.expectedAttendees ? String(initialData.expectedAttendees) : '',
+    startTime: '',
+    endTime:   '',
+    notes:             initialData?.notes             || '',
+
     resourceId: '',
     date: '',            // "YYYY-MM-DD" — drives the slot picker
     title: '',
@@ -26,6 +35,7 @@ export default function BookingForm({ onSubmit, onCancel }) {
     notes: '',
     recurrenceRule: 'NONE',
     recurrenceEndDate: '',
+
   })
 
   useEffect(() => {
