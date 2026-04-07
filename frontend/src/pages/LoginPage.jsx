@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Building2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import axios from 'axios'
+import api from '../services/api'
 
 const DEMO_ACCOUNTS = [
   { label: 'Admin', email: 'admin@campus.edu', role: 'ADMIN' },
@@ -23,7 +23,7 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
     try {
-      const res = await axios.post('/api/auth/login', { email })
+      const res = await api.post('/auth/login', { email })
       login(res.data)
       navigate('/dashboard')
     } catch (err) {
@@ -37,7 +37,7 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
     try {
-      const res = await axios.post('/api/auth/login', { email: demoEmail })
+      const res = await api.post('/auth/login', { email: demoEmail })
       login(res.data)
       navigate('/dashboard')
     } catch (err) {

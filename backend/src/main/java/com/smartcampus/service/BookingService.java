@@ -1,6 +1,7 @@
 package com.smartcampus.service;
 
 import com.smartcampus.dto.BookingRequestDTO;
+import com.smartcampus.dto.BookingStatusUpdateDTO;
 import com.smartcampus.exception.ResourceNotFoundException;
 import com.smartcampus.model.Booking;
 import com.smartcampus.model.Booking.BookingStatus;
@@ -13,6 +14,8 @@ import com.smartcampus.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -29,6 +32,12 @@ public class BookingService {
         return bookingRepository.findAllByOrderByCreatedAtDesc();
     }
 
+    public List<Booking> getFilteredBookings(BookingStatus status, Long resourceId,
+                                              Long userId, LocalDateTime startDate,
+                                              LocalDateTime endDate) {
+        return bookingRepository.findWithFilters(status, resourceId, userId, startDate, endDate);
+    }
+
     public Booking getBookingById(Long id) {
         return bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
@@ -42,8 +51,12 @@ public class BookingService {
         return bookingRepository.findByResourceId(resourceId);
     }
 
+    public boolean checkAvailability(Long resourceId, LocalDateTime startTime,
+                                     LocalDateTime endTime, Long excludeId) {
+        return bookingRepository.isResourceAvailable(resourceId, startTime, endTime, excludeId);
+    }
+
     public Booking createBooking(BookingRequestDTO dto) {
-        // Validate times
         if (!dto.getEndTime().isAfter(dto.getStartTime())) {
             throw new IllegalArgumentException("End time must be after start time");
         }
@@ -54,17 +67,18 @@ public class BookingService {
         User user = userRepository.findById(dto.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + dto.getUserId()));
 
-        // Check for conflicts
         List<Booking> conflicts = bookingRepository.findConflictingBookings(
                 dto.getResourceId(), dto.getStartTime(), dto.getEndTime());
         if (!conflicts.isEmpty()) {
-            throw new IllegalStateException("Resource is already booked during this time slot");
+            throw new IllegalStateException("Resource '" + resource.getName() + "' is already booked during this time slot");
         }
 
         Booking booking = Booking.builder()
                 .resource(resource)
                 .user(user)
                 .title(dto.getTitle())
+                .purpose(dto.getPurpose())
+                .expectedAttendees(dto.getExpectedAttendees())
                 .startTime(dto.getStartTime())
                 .endTime(dto.getEndTime())
                 .notes(dto.getNotes())
@@ -73,8 +87,8 @@ public class BookingService {
 
         Booking saved = bookingRepository.save(booking);
 
-        // Send notification
-        notificationService.createNotification(user,
+        notificationService.createNotification(
+                user,
                 "Booking Submitted",
                 "Your booking for '" + resource.getName() + "' is pending approval.",
                 Notification.NotificationType.BOOKING,
@@ -83,16 +97,25 @@ public class BookingService {
         return saved;
     }
 
-    public Booking updateBookingStatus(Long id, BookingStatus status) {
+    public Booking updateBookingStatus(Long id, BookingStatusUpdateDTO dto) {
         Booking booking = getBookingById(id);
-        booking.setStatus(status);
+        validateTransition(booking.getStatus(), dto.getStatus());
+
+        if (dto.getStatus() == BookingStatus.REJECTED) {
+            if (dto.getReason() == null || dto.getReason().isBlank()) {
+                throw new IllegalArgumentException("A reason is required when rejecting a booking");
+            }
+            booking.setRejectionReason(dto.getReason());
+        }
+
+        booking.setStatus(dto.getStatus());
         Booking updated = bookingRepository.save(booking);
 
-        // Notify user of status change
-        String msg = "Your booking for '" + booking.getResource().getName() + "' has been " + status.name().toLowerCase() + ".";
-        notificationService.createNotification(booking.getUser(),
-                "Booking " + status.name(),
-                msg,
+        String message = buildStatusMessage(booking.getResource().getName(), dto.getStatus(), dto.getReason());
+        notificationService.createNotification(
+                booking.getUser(),
+                "Booking " + dto.getStatus().name(),
+                message,
                 Notification.NotificationType.BOOKING,
                 id);
 
@@ -102,5 +125,29 @@ public class BookingService {
     public void deleteBooking(Long id) {
         Booking booking = getBookingById(id);
         bookingRepository.delete(booking);
+    }
+
+    // ── helpers ────────────────────────────────────────────────────────────────
+
+    private void validateTransition(BookingStatus current, BookingStatus next) {
+        boolean valid = switch (current) {
+            case PENDING  -> next == BookingStatus.APPROVED || next == BookingStatus.REJECTED || next == BookingStatus.CANCELLED;
+            case APPROVED -> next == BookingStatus.CANCELLED || next == BookingStatus.COMPLETED;
+            default       -> false;
+        };
+        if (!valid) {
+            throw new IllegalArgumentException(
+                    "Cannot transition booking from " + current + " to " + next);
+        }
+    }
+
+    private String buildStatusMessage(String resourceName, BookingStatus status, String reason) {
+        return switch (status) {
+            case APPROVED  -> "Your booking for '" + resourceName + "' has been approved.";
+            case REJECTED  -> "Your booking for '" + resourceName + "' was rejected. Reason: " + reason;
+            case CANCELLED -> "Your booking for '" + resourceName + "' has been cancelled.";
+            case COMPLETED -> "Your booking for '" + resourceName + "' has been marked as completed.";
+            default        -> "Your booking for '" + resourceName + "' status changed to " + status.name().toLowerCase() + ".";
+        };
     }
 }
