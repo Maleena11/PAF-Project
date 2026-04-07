@@ -507,3 +507,426 @@ tr:hover td { background: #f8fafc; }
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+/* ══════════════════════════════════════════
+   BOOKINGS PAGE — Enhanced Layout
+══════════════════════════════════════════ */
+
+/* ── Stats strip ────────────────────────── */
+.booking-stats-strip {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.stat-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  min-width: 90px;
+}
+.stat-chip-value {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+}
+.stat-chip-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+/* ── View toggle ────────────────────────── */
+.view-toggle-group {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+}
+.view-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 11px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #64748b;
+  transition: background .12s, color .12s;
+}
+.view-toggle-btn:hover { background: #f1f5f9; color: var(--text); }
+.view-toggle-btn.active { background: var(--primary); color: #fff; }
+.view-toggle-btn + .view-toggle-btn { border-left: 1px solid var(--border); }
+
+/* ── Filter bar ─────────────────────────── */
+.booking-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+/* Status pill tabs */
+.status-pill-group {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.status-pill {
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: all .12s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.status-pill:hover { border-color: #94a3b8; color: var(--text); }
+.status-pill.active { background: var(--text); color: #fff; border-color: var(--text); }
+
+.status-pill-pending.active  { background: #a16207; border-color: #a16207; }
+.status-pill-approved.active { background: #15803d; border-color: #15803d; }
+.status-pill-cancelled.active{ background: #475569; border-color: #475569; }
+.status-pill-rejected.active { background: #b91c1c; border-color: #b91c1c; }
+.status-pill-completed.active{ background: #1d4ed8; border-color: #1d4ed8; }
+
+.status-pill-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(0,0,0,.08);
+}
+.status-pill.active .status-pill-count { background: rgba(255,255,255,.25); }
+
+/* Small filter select */
+.filter-select-sm {
+  padding: 5px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12px;
+  background: var(--surface);
+  cursor: pointer;
+  color: var(--text);
+}
+.filter-select-sm:focus { outline: none; border-color: var(--primary); }
+
+/* ── Booking table card ──────────────────── */
+.booking-table-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+/* ── Booking table ───────────────────────── */
+.booking-table { width: 100%; border-collapse: collapse; }
+.booking-table thead tr {
+  background: #f1f5f9;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 2px solid #d1d5db;
+}
+.booking-table th {
+  text-align: left;
+  padding: 11px 14px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  white-space: nowrap;
+  border-right: 1px solid #e2e8f0;
+}
+.booking-table th:last-child { border-right: none; }
+.booking-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  border-right: 1px solid #f1f5f9;
+  font-size: 13px;
+  vertical-align: middle;
+}
+.booking-table td:last-child { border-right: none; }
+.booking-table tr:last-child td { border-bottom: none; }
+
+/* Row hover — blue left accent + gentle highlight */
+.booking-row { transition: background .1s; }
+.booking-row:hover td { background: #f0f6ff; }
+.booking-row:hover td { border-right-color: #dbeafe; }
+.booking-row:hover td:first-child { box-shadow: inset 3px 0 0 var(--primary); }
+
+/* Zebra stripe for extra separation */
+.booking-row:nth-child(even) td { background: #fafbfc; }
+.booking-row:nth-child(even):hover td { background: #f0f6ff; }
+
+/* Cell helpers */
+.row-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
+  letter-spacing: .02em;
+}
+.booking-title { font-weight: 600; color: #1e293b; font-size: 13px; }
+.booking-subtitle { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+.rejection-reason { font-size: 11px; color: #dc2626; margin-top: 3px; }
+
+.resource-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  white-space: nowrap;
+}
+
+.user-cell { display: flex; align-items: center; gap: 8px; }
+.user-avatar-sm {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #2563eb);
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+  flex-shrink: 0;
+}
+
+.datetime-cell { display: flex; flex-direction: column; gap: 2px; }
+.date-primary { font-size: 13px; font-weight: 500; color: #1e293b; }
+.date-time { font-size: 11px; color: #64748b; }
+
+.recurrence-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+/* ── Once tag (non-recurring) ────────────── */
+.once-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+  background: #f8fafc;
+  border: 1px dashed #e2e8f0;
+  letter-spacing: .02em;
+}
+
+/* ── Action cell layout ──────────────────── */
+.action-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+.action-divider {
+  display: inline-block;
+  width: 1px;
+  height: 20px;
+  background: #e2e8f0;
+  flex-shrink: 0;
+}
+.action-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+/* ── Action buttons ──────────────────────── */
+.action-group { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all .12s;
+  white-space: nowrap;
+}
+.action-btn-view {
+  background: #f8fafc;
+  color: #64748b;
+  border-color: #e2e8f0;
+}
+.action-btn-view:hover { background: #f1f5f9; color: #1e293b; }
+
+.action-btn-approve {
+  background: #dcfce7;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+.action-btn-approve:hover { background: #bbf7d0; }
+
+.action-btn-reject {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+.action-btn-reject:hover { background: #fecaca; }
+
+.action-btn-cancel {
+  background: #f8fafc;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+.action-btn-cancel:hover { background: #f1f5f9; }
+
+.action-btn-complete {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+.action-btn-complete:hover { background: #bfdbfe; }
+
+/* ── Section header (Waitlist) ───────────── */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.section-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-icon-wrap {
+  width: 34px; height: 34px;
+  border-radius: 9px;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #b45309;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+/* ── Dialog card (detail / reject modals) ── */
+.dialog-card {
+  background: var(--surface);
+  border-radius: 14px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 64px -12px rgba(0,0,0,.28), 0 0 0 1px rgba(0,0,0,.05);
+  display: flex;
+  flex-direction: column;
+}
+.dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.dialog-icon {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.dialog-icon-primary { background: #eff6ff; color: #2563eb; }
+.dialog-icon-danger  { background: #fee2e2; color: #dc2626; }
+
+.dialog-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 24px;
+  border-top: 1px solid var(--border);
+  background: #f8fafc;
+  flex-shrink: 0;
+}
+
+/* ── Detail rows (inside dialog) ────────── */
+.detail-section { margin-bottom: 18px; }
+.detail-section:last-child { margin-bottom: 0; }
+.detail-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #94a3b8;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.detail-grid { display: flex; flex-direction: column; gap: 8px; }
+.detail-row { display: flex; gap: 10px; align-items: flex-start; }
+.detail-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  min-width: 130px;
+  flex-shrink: 0;
+}
+.detail-value {
+  font-size: 13px;
+  color: #1e293b;
+  line-height: 1.5;
+}
