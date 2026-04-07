@@ -1,21 +1,35 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import { LayoutDashboard, Building2, CalendarCheck, Ticket, Bell, LogOut } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import api from '../services/api'
 
 export default function Navbar() {
   const { user, logout } = useAuth()
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  useEffect(() => {
+    if (!user?.id) return
+    const fetchCount = () => {
+      api.get(`/notifications/user/${user.id}/count`)
+        .then(r => setUnreadCount(r.data.count))
+        .catch(() => {})
+    }
+    fetchCount()
+    const interval = setInterval(fetchCount, 30000)
+    return () => clearInterval(interval)
+  }, [user?.id])
 
   const initials = user?.name
     ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
     : '?'
 
   const links = [
-    { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/resources',  icon: Building2,       label: 'Resources' },
-    { to: '/bookings',   icon: CalendarCheck,   label: 'Bookings' },
-    { to: '/tickets',    icon: Ticket,           label: 'Tickets' },
-    { to: '/notifications', icon: Bell,          label: 'Notifications' },
+    { to: '/dashboard',      icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/resources',      icon: Building2,       label: 'Resources' },
+    { to: '/bookings',       icon: CalendarCheck,   label: 'Bookings' },
+    { to: '/tickets',        icon: Ticket,          label: 'Tickets' },
+    { to: '/notifications',  icon: Bell,            label: 'Notifications', badge: unreadCount },
   ]
 
   return (
@@ -26,9 +40,22 @@ export default function Navbar() {
       </div>
 
       <nav>
-        {links.map(({ to, icon: Icon, label }) => (
+        {links.map(({ to, icon: Icon, label, badge }) => (
           <NavLink key={to} to={to} className={({ isActive }) => isActive ? 'active' : ''}>
-            <Icon size={18} />
+            <span style={{ position: 'relative', display: 'inline-flex' }}>
+              <Icon size={18} />
+              {badge > 0 && (
+                <span style={{
+                  position: 'absolute', top: -6, right: -8,
+                  background: '#ef4444', color: '#fff',
+                  borderRadius: '50%', fontSize: 10, fontWeight: 700,
+                  minWidth: 16, height: 16, lineHeight: '16px',
+                  textAlign: 'center', padding: '0 3px',
+                }}>
+                  {badge > 99 ? '99+' : badge}
+                </span>
+              )}
+            </span>
             {label}
           </NavLink>
         ))}
