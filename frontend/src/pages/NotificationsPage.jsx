@@ -5,6 +5,7 @@ import { format } from 'date-fns'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 
+
 const TYPE_ICON = {
   BOOKING: { bg: '#dbeafe', color: '#2563eb', label: 'Booking' },
   TICKET:  { bg: '#fee2e2', color: '#dc2626', label: 'Ticket' },
