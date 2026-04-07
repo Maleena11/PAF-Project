@@ -1,7 +1,9 @@
 package com.smartcampus.dto;
 
+import com.smartcampus.model.Booking.RecurrenceRule;
 import jakarta.validation.constraints.*;
 import lombok.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -33,4 +35,10 @@ public class BookingRequestDTO {
     private LocalDateTime endTime;
 
     private String notes;
+
+    /** NONE means single booking (default). DAILY / WEEKLY / MONTHLY triggers recurrence. */
+    private RecurrenceRule recurrenceRule;
+
+    /** Required when recurrenceRule != NONE. Last day on which an occurrence may start. */
+    private LocalDate recurrenceEndDate;
 }

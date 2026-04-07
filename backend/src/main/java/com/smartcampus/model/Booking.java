@@ -3,6 +3,7 @@ package com.smartcampus.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -54,6 +55,18 @@ public class Booking {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "recurrence_rule")
+    @Builder.Default
+    private RecurrenceRule recurrenceRule = RecurrenceRule.NONE;
+
+    @Column(name = "recurrence_end_date")
+    private LocalDate recurrenceEndDate;
+
+    /** Null for standalone or parent bookings; set on generated child bookings. */
+    @Column(name = "parent_booking_id")
+    private Long parentBookingId;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -73,5 +86,9 @@ public class Booking {
 
     public enum BookingStatus {
         PENDING, APPROVED, CANCELLED, REJECTED, COMPLETED
+    }
+
+    public enum RecurrenceRule {
+        NONE, DAILY, WEEKLY, MONTHLY
     }
 }
