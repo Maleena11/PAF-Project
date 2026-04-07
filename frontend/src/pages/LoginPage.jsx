@@ -7,8 +7,8 @@ import api from '../services/api'
 const DEMO_ACCOUNTS = [
   { label: 'Admin', email: 'admin@campus.edu', role: 'ADMIN' },
   { label: 'Staff', email: 'bob@campus.edu', role: 'STAFF' },
-  { label: 'Student', email: 'alice@campus.edu', role: 'STUDENT' },
-  { label: 'Student', email: 'carol@campus.edu', role: 'STUDENT' },
+  { label: 'Student1', email: 'alice@campus.edu', role: 'STUDENT' },
+  { label: 'Student2', email: 'carol@campus.edu', role: 'STUDENT' },
 ]
 
 export default function LoginPage() {
