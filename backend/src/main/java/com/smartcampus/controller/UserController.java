@@ -63,4 +63,24 @@ public class UserController {
     public ResponseEntity<?> getAllUsers() {
         return ResponseEntity.ok(userRepository.findAll());
     }
+
+    @PatchMapping("/users/{id}/role")
+    public ResponseEntity<?> updateUserRole(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        String roleStr = body.get("role");
+        if (roleStr == null || roleStr.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Role is required"));
+        }
+        User.Role newRole;
+        try {
+            newRole = User.Role.valueOf(roleStr.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Invalid role: " + roleStr));
+        }
+        return userRepository.findById(id)
+            .map(user -> {
+                user.setRole(newRole);
+                return ResponseEntity.ok(userRepository.save(user));
+            })
+            .orElse(ResponseEntity.notFound().build());
+    }
 }
