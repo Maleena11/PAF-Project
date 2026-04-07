@@ -9,6 +9,7 @@ import BookingsPage from './pages/BookingsPage'
 import TicketsPage from './pages/TicketsPage'
 import NotificationsPage from './pages/NotificationsPage'
 import LoginPage from './pages/LoginPage'
+import AdminUsersPage from './pages/AdminUsersPage'
 
 function AppLayout() {
   const { user } = useAuth()
@@ -24,6 +25,7 @@ function AppLayout() {
           <Route path="/bookings"      element={<BookingsPage />} />
           <Route path="/tickets"       element={<TicketsPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/admin/users"   element={<AdminUsersPage />} />
           <Route path="*"              element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </main>

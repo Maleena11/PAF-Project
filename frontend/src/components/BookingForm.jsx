@@ -3,19 +3,19 @@ import resourceService from '../services/resourceService'
 import bookingService from '../services/bookingService'
 import { useAuth } from '../context/AuthContext'
 
-export default function BookingForm({ onSubmit, onCancel }) {
+export default function BookingForm({ onSubmit, onCancel, initialData = null }) {
   const { user } = useAuth()
   const [resources, setResources] = useState([])
   const [availability, setAvailability] = useState(null) // null | true | false
   const [checking, setChecking] = useState(false)
   const [form, setForm] = useState({
-    resourceId: '',
-    title: '',
-    purpose: '',
-    expectedAttendees: '',
+    resourceId:        initialData?.resourceId        ? String(initialData.resourceId) : '',
+    title:             initialData?.title             || '',
+    purpose:           initialData?.purpose           || '',
+    expectedAttendees: initialData?.expectedAttendees ? String(initialData.expectedAttendees) : '',
     startTime: '',
-    endTime: '',
-    notes: '',
+    endTime:   '',
+    notes:             initialData?.notes             || '',
   })
 
   useEffect(() => {
