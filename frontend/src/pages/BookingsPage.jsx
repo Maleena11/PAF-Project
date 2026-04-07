@@ -1,6 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
-import { Plus, CalendarCheck, X, Eye, LayoutList, Calendar, Clock } from 'lucide-react'
+import {
+  Plus, CalendarCheck, X, Eye, LayoutList, Calendar,
+  Clock, Users, CheckCircle2, XCircle, AlertCircle,
+  Ban, RefreshCw
+} from 'lucide-react'
 import { format } from 'date-fns'
 import { useAuth } from '../context/AuthContext'
 import bookingService from '../services/bookingService'
@@ -17,6 +21,24 @@ const STATUS_BADGE = {
   COMPLETED: 'badge-blue',
 }
 
+const STATUS_LABEL = {
+  PENDING:   'Pending',
+  APPROVED:  'Approved',
+  CANCELLED: 'Cancelled',
+  REJECTED:  'Rejected',
+  COMPLETED: 'Completed',
+}
+
+const STATUS_ICON = {
+  PENDING:   <AlertCircle size={11} />,
+  APPROVED:  <CheckCircle2 size={11} />,
+  CANCELLED: <Ban size={11} />,
+  REJECTED:  <XCircle size={11} />,
+  COMPLETED: <CheckCircle2 size={11} />,
+}
+
+const ALL_STATUSES = ['PENDING', 'APPROVED', 'CANCELLED', 'REJECTED', 'COMPLETED']
+
 export default function BookingsPage() {
   const { user } = useAuth()
   const [bookings, setBookings]       = useState([])
@@ -24,26 +46,23 @@ export default function BookingsPage() {
   const [loading, setLoading]         = useState(true)
   const [showForm, setShowForm]       = useState(false)
   const [detailBooking, setDetailBooking] = useState(null)
-  const [viewMode, setViewMode]       = useState('table') // 'table' | 'calendar'
-  const [waitlist, setWaitlist]           = useState([])
-  const [wlLoading, setWlLoading]         = useState(false)
-  // Admin waitlist filters
+  const [viewMode, setViewMode]       = useState('table')
+  const [waitlist, setWaitlist]       = useState([])
+  const [wlLoading, setWlLoading]     = useState(false)
+
   const [wlFilterResource, setWlFilterResource] = useState('')
   const [wlFilterStatus,   setWlFilterStatus]   = useState('WAITING')
 
-  // Filters
   const [filterStatus,     setFilterStatus]     = useState('')
   const [filterResourceId, setFilterResourceId] = useState('')
   const [filterStartDate,  setFilterStartDate]  = useState('')
   const [filterEndDate,    setFilterEndDate]     = useState('')
 
-  // Reject-with-reason modal
-  const [rejectTarget, setRejectTarget] = useState(null) // booking id
+  const [rejectTarget, setRejectTarget] = useState(null)
   const [rejectReason, setRejectReason] = useState('')
 
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'STAFF'
 
-  // Load resources for the filter dropdown (admin only)
   useEffect(() => {
     if (isAdmin) {
       resourceService.getAll()
@@ -55,7 +74,6 @@ export default function BookingsPage() {
   const load = () => {
     if (!user?.id) return
     setLoading(true)
-
     let call
     if (isAdmin) {
       const params = {}
@@ -67,7 +85,6 @@ export default function BookingsPage() {
     } else {
       call = bookingService.getByUser(user.id)
     }
-
     call
       .then(r => setBookings(Array.isArray(r.data) ? r.data : []))
       .catch(() => { toast.error('Failed to load bookings'); setBookings([]) })
@@ -95,7 +112,6 @@ export default function BookingsPage() {
   const handleCreate = async (data) => {
     try {
       if (data._waitlist) {
-        // Waitlist was already submitted by BookingForm; just refresh + notify
         toast.success("You've been added to the waitlist! We'll notify you if the slot opens up.")
         setShowForm(false)
         loadWaitlist()
@@ -104,7 +120,9 @@ export default function BookingsPage() {
       const res = await bookingService.create(data)
       const { totalCreated, skippedConflicts } = res.data
       if (totalCreated > 1) {
-        const skippedNote = skippedConflicts > 0 ? ` (${skippedConflicts} slot${skippedConflicts > 1 ? 's' : ''} skipped due to conflicts)` : ''
+        const skippedNote = skippedConflicts > 0
+          ? ` (${skippedConflicts} slot${skippedConflicts > 1 ? 's' : ''} skipped due to conflicts)`
+          : ''
         toast.success(`${totalCreated} recurring bookings submitted!${skippedNote}`)
       } else {
         toast.success('Booking submitted!')
@@ -161,10 +179,7 @@ export default function BookingsPage() {
   }
 
   const handleRejectSubmit = async () => {
-    if (!rejectReason.trim()) {
-      toast.error('Please provide a reason for rejection')
-      return
-    }
+    if (!rejectReason.trim()) { toast.error('Please provide a reason for rejection'); return }
     try {
       await bookingService.updateStatus(rejectTarget, 'REJECTED', rejectReason.trim())
       toast.success('Booking rejected')
@@ -204,83 +219,118 @@ export default function BookingsPage() {
     setFilterEndDate('')
   }
 
-  // Apply filters client-side for non-admin (already filtered server-side for admin)
   const displayed = isAdmin
     ? bookings
     : bookings.filter(b => !filterStatus || b.status === filterStatus)
 
+  // Status count helpers
+  const countOf = (s) => bookings.filter(b => b.status === s).length
+
   return (
     <div>
       {/* ── Header ── */}
-      <div className="page-header page-header-row">
+      <div className="page-header page-header-row" style={{ marginBottom: 20 }}>
         <div>
-          <h1>Bookings</h1>
-          <p>{isAdmin ? 'Manage all campus resource bookings' : 'Your resource booking requests'}</p>
+          <h1 style={{ fontSize: 22, fontWeight: 700 }}>Bookings</h1>
+          <p style={{ color: '#64748b', marginTop: 2 }}>
+            {isAdmin ? 'Manage all campus resource bookings' : 'Your resource booking requests'}
+          </p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {/* Table / Calendar toggle */}
-          <button
-            className={`btn btn-sm ${viewMode === 'table' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setViewMode('table')}
-            title="Table view"
-          >
-            <LayoutList size={15} />
-          </button>
-          <button
-            className={`btn btn-sm ${viewMode === 'calendar' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setViewMode('calendar')}
-            title="Calendar view"
-          >
-            <Calendar size={15} />
-          </button>
-          <button className="btn btn-primary" onClick={() => setShowForm(true)}>
-            <Plus size={16} /> New Booking
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div className="view-toggle-group">
+            <button
+              className={`view-toggle-btn ${viewMode === 'table' ? 'active' : ''}`}
+              onClick={() => setViewMode('table')}
+              title="Table view"
+            >
+              <LayoutList size={15} />
+            </button>
+            <button
+              className={`view-toggle-btn ${viewMode === 'calendar' ? 'active' : ''}`}
+              onClick={() => setViewMode('calendar')}
+              title="Calendar view"
+            >
+              <Calendar size={15} />
+            </button>
+          </div>
+          <button className="btn btn-primary" onClick={() => setShowForm(true)} style={{ gap: 6 }}>
+            <Plus size={15} /> New Booking
           </button>
         </div>
       </div>
 
-      {/* ── Filters ── */}
-      <div className="toolbar" style={{ flexWrap: 'wrap', gap: 8 }}>
-        <select className="filter-select" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-          <option value="">All Statuses</option>
-          {['PENDING', 'APPROVED', 'CANCELLED', 'REJECTED', 'COMPLETED'].map(s => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
+      {/* ── Admin Stats Strip ── */}
+      {isAdmin && !loading && (
+        <div className="booking-stats-strip">
+          <StatChip label="Total" value={bookings.length} color="#2563eb" bg="#eff6ff" />
+          <StatChip label="Pending"   value={countOf('PENDING')}   color="#a16207" bg="#fefce8" />
+          <StatChip label="Approved"  value={countOf('APPROVED')}  color="#15803d" bg="#f0fdf4" />
+          <StatChip label="Completed" value={countOf('COMPLETED')} color="#1d4ed8" bg="#eff6ff" />
+          <StatChip label="Cancelled" value={countOf('CANCELLED')} color="#475569" bg="#f8fafc" />
+        </div>
+      )}
 
+      {/* ── Filter Bar ── */}
+      <div className="booking-filter-bar">
+        {/* Status pill tabs */}
+        <div className="status-pill-group">
+          <button
+            className={`status-pill ${filterStatus === '' ? 'active' : ''}`}
+            onClick={() => setFilterStatus('')}
+          >
+            All
+          </button>
+          {ALL_STATUSES.map(s => (
+            <button
+              key={s}
+              className={`status-pill status-pill-${s.toLowerCase()} ${filterStatus === s ? 'active' : ''}`}
+              onClick={() => setFilterStatus(s)}
+            >
+              {STATUS_LABEL[s]}
+              {isAdmin && bookings.length > 0 && (
+                <span className="status-pill-count">{countOf(s)}</span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Admin extra filters */}
         {isAdmin && (
-          <>
-            <select className="filter-select" value={filterResourceId} onChange={e => setFilterResourceId(e.target.value)}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginLeft: 'auto' }}>
+            <select className="filter-select-sm" value={filterResourceId} onChange={e => setFilterResourceId(e.target.value)}>
               <option value="">All Resources</option>
               {resources.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
-
             <input
-              className="filter-select"
+              className="filter-select-sm"
               type="date"
               value={filterStartDate}
               onChange={e => setFilterStartDate(e.target.value)}
               title="From date"
             />
+            <span style={{ color: '#94a3b8', fontSize: 12 }}>–</span>
             <input
-              className="filter-select"
+              className="filter-select-sm"
               type="date"
               value={filterEndDate}
               onChange={e => setFilterEndDate(e.target.value)}
               title="To date"
             />
-
-            <button className="btn btn-secondary btn-sm" onClick={load}>Apply</button>
-            <button className="btn btn-secondary btn-sm" onClick={clearFilters}>Clear</button>
-          </>
+            <button className="btn btn-sm btn-primary" onClick={load} style={{ gap: 4 }}>
+              <RefreshCw size={12} /> Apply
+            </button>
+            {(filterResourceId || filterStartDate || filterEndDate) && (
+              <button className="btn btn-sm btn-secondary" onClick={clearFilters}>Clear</button>
+            )}
+          </div>
         )}
-
-        <span style={{ marginLeft: 'auto', fontSize: 13, color: '#64748b' }}>
-          {displayed.length} booking{displayed.length !== 1 ? 's' : ''}
-        </span>
       </div>
 
-      {/* ── Table ── */}
+      {/* ── Result count ── */}
+      <div style={{ marginBottom: 12, fontSize: 12, color: '#94a3b8', fontWeight: 500 }}>
+        Showing {displayed.length} booking{displayed.length !== 1 ? 's' : ''}
+      </div>
+
       {/* ── Calendar view ── */}
       {!loading && viewMode === 'calendar' && (
         <div className="card">
@@ -292,90 +342,145 @@ export default function BookingsPage() {
       {loading ? (
         <div className="loading-container"><div className="spinner" /></div>
       ) : viewMode === 'table' && (
-        <div className="card">
+        <div className="booking-table-card">
           {displayed.length === 0 ? (
-            <div className="empty-state">
-              <CalendarCheck size={48} />
-              <h3>No bookings found</h3>
-              <p>Click "New Booking" to reserve a resource.</p>
+            <div className="empty-state" style={{ padding: '56px 24px' }}>
+              <CalendarCheck size={44} style={{ opacity: 0.3, marginBottom: 14 }} />
+              <h3 style={{ fontSize: 15, fontWeight: 600 }}>No bookings found</h3>
+              <p style={{ fontSize: 13, marginTop: 4 }}>
+                {filterStatus
+                  ? `No ${STATUS_LABEL[filterStatus]?.toLowerCase()} bookings.`
+                  : 'Click "New Booking" to reserve a resource.'}
+              </p>
             </div>
           ) : (
             <div className="table-wrapper">
-              <table>
+              <table className="booking-table">
                 <thead>
                   <tr>
-                    <th>#</th>
+                    <th style={{ width: 48 }}>#</th>
                     <th>Title</th>
                     <th>Resource</th>
                     {isAdmin && <th>Requested By</th>}
-                    <th>Start</th>
-                    <th>End</th>
-                    <th>Attendees</th>
+                    <th>Date & Time</th>
+                    <th style={{ width: 80, textAlign: 'center' }}>
+                      <Users size={12} style={{ verticalAlign: 'middle' }} />
+                    </th>
                     <th>Status</th>
                     <th>Recurrence</th>
-                    <th>Actions</th>
+                    <th style={{ width: 200, whiteSpace: 'nowrap' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {displayed.map(b => (
-                    <tr key={b.id}>
-                      <td style={{ color: '#94a3b8' }}>#{b.id}</td>
-                      <td style={{ fontWeight: 500 }}>{b.title}</td>
-                      <td>{b.resource?.name}</td>
-                      {isAdmin && <td>{b.user?.name}</td>}
-                      <td>{format(new Date(b.startTime), 'MMM d, HH:mm')}</td>
-                      <td>{format(new Date(b.endTime), 'MMM d, HH:mm')}</td>
-                      <td>{b.expectedAttendees ?? '—'}</td>
+                  {displayed.map((b) => (
+                    <tr key={b.id} className="booking-row">
+                      <td>
+                        <span className="row-number">#{b.id}</span>
+                      </td>
+                      <td>
+                        <span className="booking-title">{b.title}</span>
+                        {b.purpose && (
+                          <div className="booking-subtitle">{b.purpose}</div>
+                        )}
+                      </td>
+                      <td>
+                        <span className="resource-chip">{b.resource?.name}</span>
+                      </td>
+                      {isAdmin && (
+                        <td>
+                          <div className="user-cell">
+                            <div className="user-avatar-sm">
+                              {(b.user?.name || 'U').charAt(0).toUpperCase()}
+                            </div>
+                            <span>{b.user?.name}</span>
+                          </div>
+                        </td>
+                      )}
+                      <td>
+                        <div className="datetime-cell">
+                          <span className="date-primary">{format(new Date(b.startTime), 'MMM d, yyyy')}</span>
+                          <span className="date-time">
+                            {format(new Date(b.startTime), 'HH:mm')}
+                            <span style={{ margin: '0 3px', color: '#94a3b8' }}>–</span>
+                            {format(new Date(b.endTime), 'HH:mm')}
+                          </span>
+                        </div>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <span style={{ fontSize: 13, color: '#475569', fontWeight: 500 }}>
+                          {b.expectedAttendees ?? '—'}
+                        </span>
+                      </td>
                       <td>
                         <div>
-                          <span className={`badge ${STATUS_BADGE[b.status] || 'badge-gray'}`}>
-                            {b.status}
+                          <span className={`badge ${STATUS_BADGE[b.status] || 'badge-gray'}`} style={{ gap: 4 }}>
+                            {STATUS_ICON[b.status]}
+                            {STATUS_LABEL[b.status] || b.status}
                           </span>
                           {b.status === 'REJECTED' && b.rejectionReason && (
-                            <div style={{ fontSize: 11, color: '#dc2626', marginTop: 2 }}>
-                              {b.rejectionReason}
-                            </div>
+                            <div className="rejection-reason">{b.rejectionReason}</div>
                           )}
                         </div>
                       </td>
                       <td>
                         {b.recurrenceRule && b.recurrenceRule !== 'NONE' ? (
-                          <span className="badge badge-blue" title={`Repeats ${b.recurrenceRule.toLowerCase()}`}>
+                          <span className="recurrence-tag" title={`Repeats ${b.recurrenceRule.toLowerCase()}`}>
+                            <RefreshCw size={10} />
                             {b.recurrenceRule.charAt(0) + b.recurrenceRule.slice(1).toLowerCase()}
-                            {b.parentBookingId ? ' (child)' : ' (series)'}
+                            <span style={{ color: '#94a3b8' }}>
+                              {b.parentBookingId ? ' · child' : ' · series'}
+                            </span>
                           </span>
                         ) : (
-                          <span style={{ color: '#94a3b8', fontSize: 12 }}>—</span>
+                          <span className="once-tag">Once</span>
                         )}
                       </td>
                       <td>
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                          {/* View detail */}
+                        <div className="action-cell">
+                          {/* Always-visible view button */}
                           <button
-                            className="btn btn-sm btn-secondary"
+                            className="action-btn action-btn-view"
                             title="View details"
                             onClick={() => setDetailBooking(b)}
                           >
                             <Eye size={13} />
                           </button>
 
-                          {/* Admin actions */}
-                          {isAdmin && b.status === 'PENDING' && (
+                          {/* Divider + contextual actions */}
+                          {(
+                            (isAdmin && (b.status === 'PENDING' || b.status === 'APPROVED')) ||
+                            (!isAdmin && b.status === 'PENDING')
+                          ) && (
                             <>
-                              <button className="btn btn-sm btn-success" onClick={() => handleApprove(b.id)}>Approve</button>
-                              <button className="btn btn-sm btn-danger"  onClick={() => { setRejectTarget(b.id); setRejectReason('') }}>Reject</button>
+                              <span className="action-divider" />
+                              <div className="action-btn-group">
+                                {isAdmin && b.status === 'PENDING' && (
+                                  <>
+                                    <button className="action-btn action-btn-approve" onClick={() => handleApprove(b.id)}>
+                                      <CheckCircle2 size={12} /> Approve
+                                    </button>
+                                    <button className="action-btn action-btn-reject" onClick={() => { setRejectTarget(b.id); setRejectReason('') }}>
+                                      <XCircle size={12} /> Reject
+                                    </button>
+                                  </>
+                                )}
+                                {isAdmin && b.status === 'APPROVED' && (
+                                  <>
+                                    <button className="action-btn action-btn-cancel" onClick={() => handleCancel(b.id)}>
+                                      Cancel
+                                    </button>
+                                    <button className="action-btn action-btn-complete" onClick={() => handleComplete(b.id)}>
+                                      Complete
+                                    </button>
+                                  </>
+                                )}
+                                {!isAdmin && b.status === 'PENDING' && (
+                                  <button className="action-btn action-btn-reject" onClick={() => handleCancel(b.id)}>
+                                    <XCircle size={12} /> Cancel
+                                  </button>
+                                )}
+                              </div>
                             </>
-                          )}
-                          {isAdmin && b.status === 'APPROVED' && (
-                            <>
-                              <button className="btn btn-sm btn-secondary" onClick={() => handleCancel(b.id)}>Cancel</button>
-                              <button className="btn btn-sm btn-primary"   onClick={() => handleComplete(b.id)}>Complete</button>
-                            </>
-                          )}
-
-                          {/* User: cancel own pending booking */}
-                          {!isAdmin && b.status === 'PENDING' && (
-                            <button className="btn btn-sm btn-danger" onClick={() => handleCancel(b.id)}>Cancel</button>
                           )}
                         </div>
                       </td>
@@ -389,26 +494,29 @@ export default function BookingsPage() {
       )}
 
       {/* ── Waitlist Panel ── */}
-      <div style={{ marginTop: 32 }}>
-        {/* Section header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Clock size={18} style={{ color: '#b45309' }} />
-            <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>
-              {isAdmin ? 'Waitlist Management' : 'My Waitlist'}
-            </h2>
-            {waitlist.filter(w => w.status === 'WAITING').length > 0 && (
-              <span className="badge badge-orange">
-                {waitlist.filter(w => w.status === 'WAITING').length} waiting
-              </span>
-            )}
+
+      <div style={{ marginTop: 36 }}>
+        <div className="section-header">
+          <div className="section-header-left">
+            <div className="section-icon-wrap">
+              <Clock size={16} />
+            </div>
+            <div>
+              <h2 className="section-title">
+                {isAdmin ? 'Waitlist Management' : 'My Waitlist'}
+              </h2>
+              {waitlist.filter(w => w.status === 'WAITING').length > 0 && (
+                <span style={{ fontSize: 12, color: '#b45309' }}>
+                  {waitlist.filter(w => w.status === 'WAITING').length} currently waiting
+                </span>
+              )}
+            </div>
           </div>
 
-          {/* Admin filters */}
           {isAdmin && (
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 8 }}>
               <select
-                className="filter-select"
+                className="filter-select-sm"
                 value={wlFilterResource}
                 onChange={e => setWlFilterResource(e.target.value)}
               >
@@ -416,7 +524,7 @@ export default function BookingsPage() {
                 {resources.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
               </select>
               <select
-                className="filter-select"
+                className="filter-select-sm"
                 value={wlFilterStatus}
                 onChange={e => setWlFilterStatus(e.target.value)}
               >
@@ -432,27 +540,34 @@ export default function BookingsPage() {
         {wlLoading ? (
           <div className="loading-container"><div className="spinner" /></div>
         ) : waitlist.length === 0 ? (
-          <div className="card">
-            <div className="empty-state" style={{ padding: '32px 20px' }}>
-              <Clock size={36} />
-              <h3>{isAdmin ? 'No waitlist entries' : 'You have no waitlist entries'}</h3>
-              <p>{isAdmin ? 'No one is currently waiting for any resource.' : 'Click a booked slot in the slot picker to join a waitlist.'}</p>
+          <div className="booking-table-card">
+            <div className="empty-state" style={{ padding: '40px 20px' }}>
+              <Clock size={36} style={{ opacity: 0.25, marginBottom: 12 }} />
+              <h3 style={{ fontSize: 14, fontWeight: 600 }}>
+                {isAdmin ? 'No waitlist entries' : 'You have no waitlist entries'}
+              </h3>
+              <p style={{ fontSize: 13, marginTop: 4 }}>
+                {isAdmin
+                  ? 'No one is currently waiting for any resource.'
+                  : 'Click a booked slot in the slot picker to join a waitlist.'}
+              </p>
             </div>
           </div>
         ) : (
-          <div className="card">
+          <div className="booking-table-card">
             <div className="table-wrapper">
-              <table>
+              <table className="booking-table">
                 <thead>
                   <tr>
                     <th>#</th>
                     {isAdmin && <th>Student</th>}
                     <th>Resource</th>
-                    <th>Date</th>
-                    <th>Time Slot</th>
+                    <th>Date & Slot</th>
                     <th>Title</th>
-                    <th>Attendees</th>
-                    {isAdmin && <th>Queue</th>}
+                    <th style={{ textAlign: 'center' }}>
+                      <Users size={12} style={{ verticalAlign: 'middle' }} />
+                    </th>
+                    {isAdmin && <th style={{ textAlign: 'center' }}>Queue</th>}
                     <th>Status</th>
                     <th>Joined</th>
                     <th>Actions</th>
@@ -460,7 +575,6 @@ export default function BookingsPage() {
                 </thead>
                 <tbody>
                   {waitlist.map(w => {
-                    // Compute queue position client-side for WAITING entries
                     const queuePos = w.status === 'WAITING'
                       ? 1 + waitlist.filter(x =>
                           x.status === 'WAITING' &&
@@ -472,31 +586,45 @@ export default function BookingsPage() {
                       : null
 
                     return (
-                      <tr key={w.id}>
-                        <td style={{ color: '#94a3b8' }}>#{w.id}</td>
+                      <tr key={w.id} className="booking-row">
+                        <td><span className="row-number">#{w.id}</span></td>
                         {isAdmin && (
                           <td>
-                            <div style={{ fontWeight: 500 }}>{w.user?.name}</div>
-                            <div style={{ fontSize: 11, color: '#64748b' }}>{w.user?.email}</div>
+                            <div className="user-cell">
+                              <div className="user-avatar-sm">
+                                {(w.user?.name || 'U').charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <div style={{ fontWeight: 500, fontSize: 13 }}>{w.user?.name}</div>
+                                <div style={{ fontSize: 11, color: '#94a3b8' }}>{w.user?.email}</div>
+                              </div>
+                            </div>
                           </td>
                         )}
-                        <td>{w.resource?.name}</td>
-                        <td>{format(new Date(w.slotStart), 'MMM d, yyyy')}</td>
-                        <td style={{ whiteSpace: 'nowrap' }}>
-                          {format(new Date(w.slotStart), 'HH:mm')} – {format(new Date(w.slotEnd), 'HH:mm')}
+                        <td>
+                          <span className="resource-chip">{w.resource?.name}</span>
                         </td>
                         <td>
-                          <div style={{ fontWeight: 500 }}>{w.title}</div>
-                          <div style={{ fontSize: 11, color: '#64748b' }}>{w.purpose}</div>
+                          <div className="datetime-cell">
+                            <span className="date-primary">{format(new Date(w.slotStart), 'MMM d, yyyy')}</span>
+                            <span className="date-time">
+                              {format(new Date(w.slotStart), 'HH:mm')}
+                              <span style={{ margin: '0 3px', color: '#94a3b8' }}>–</span>
+                              {format(new Date(w.slotEnd), 'HH:mm')}
+                            </span>
+                          </div>
                         </td>
-                        <td>{w.expectedAttendees ?? '—'}</td>
+                        <td>
+                          <div className="booking-title" style={{ fontSize: 13 }}>{w.title}</div>
+                          {w.purpose && <div className="booking-subtitle">{w.purpose}</div>}
+                        </td>
+                        <td style={{ textAlign: 'center', fontSize: 13, color: '#475569', fontWeight: 500 }}>
+                          {w.expectedAttendees ?? '—'}
+                        </td>
                         {isAdmin && (
-                          <td>
+                          <td style={{ textAlign: 'center' }}>
                             {queuePos !== null ? (
-                              <span
-                                className={`badge ${queuePos === 1 ? 'badge-green' : 'badge-yellow'}`}
-                                title="Position in queue for this slot"
-                              >
+                              <span className={`badge ${queuePos === 1 ? 'badge-green' : 'badge-yellow'}`}>
                                 #{queuePos}
                               </span>
                             ) : '—'}
@@ -506,28 +634,25 @@ export default function BookingsPage() {
                           <span className={`badge ${
                             w.status === 'WAITING'  ? 'badge-yellow' :
                             w.status === 'PROMOTED' ? 'badge-green'  : 'badge-gray'
-                          }`}>
-                            {w.status === 'WAITING'  ? '⏳ Waiting'   :
-                             w.status === 'PROMOTED' ? '✓ Promoted'  : 'Cancelled'}
+                          }`} style={{ gap: 4 }}>
+                            {w.status === 'WAITING'  ? <><AlertCircle size={10} /> Waiting</>  :
+                             w.status === 'PROMOTED' ? <><CheckCircle2 size={10} /> Promoted</> :
+                             <><Ban size={10} /> Cancelled</>}
                           </span>
                         </td>
-                        <td style={{ fontSize: 12, color: '#64748b', whiteSpace: 'nowrap' }}>
-                          {w.createdAt ? format(new Date(w.createdAt), 'MMM d, HH:mm') : '—'}
+                        <td>
+                          <span className="date-time" style={{ whiteSpace: 'nowrap' }}>
+                            {w.createdAt ? format(new Date(w.createdAt), 'MMM d, HH:mm') : '—'}
+                          </span>
                         </td>
                         <td>
                           {w.status === 'WAITING' && (
                             isAdmin
-                              ? <button
-                                  className="btn btn-sm btn-danger"
-                                  onClick={() => handleAdminRemoveWaitlist(w.id, w.user?.name)}
-                                >
-                                  Remove
+                              ? <button className="action-btn action-btn-reject" onClick={() => handleAdminRemoveWaitlist(w.id, w.user?.name)}>
+                                  <XCircle size={13} /> Remove
                                 </button>
-                              : <button
-                                  className="btn btn-sm btn-danger"
-                                  onClick={() => handleLeaveWaitlist(w.id)}
-                                >
-                                  Leave
+                              : <button className="action-btn action-btn-reject" onClick={() => handleLeaveWaitlist(w.id)}>
+                                  <XCircle size={13} /> Leave
                                 </button>
                           )}
                         </td>
@@ -564,87 +689,129 @@ export default function BookingsPage() {
       {/* ── Reject with Reason Modal ── */}
       {rejectTarget && (
         <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && setRejectTarget(null)}>
-          <div className="modal-plain" style={{ maxWidth: 420 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h2 style={{ margin: 0 }}>Reject Booking</h2>
-              <button className="btn btn-sm btn-secondary" onClick={() => setRejectTarget(null)}><X size={14} /></button>
+          <div className="dialog-card" style={{ maxWidth: 440 }}>
+            <div className="dialog-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div className="dialog-icon dialog-icon-danger">
+                  <XCircle size={18} />
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Reject Booking</h2>
+                  <p style={{ margin: 0, fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                    The requester will be notified with your reason.
+                  </p>
+                </div>
+              </div>
+              <button className="btn btn-sm btn-secondary btn-icon" onClick={() => setRejectTarget(null)}>
+                <X size={14} />
+              </button>
             </div>
-            <p style={{ fontSize: 14, color: '#64748b', marginBottom: 12 }}>
-              Please provide a reason. The requester will be notified.
-            </p>
-            <div className="form-group">
-              <label>Reason *</label>
-              <textarea
-                className="form-control"
-                rows={3}
-                value={rejectReason}
-                onChange={e => setRejectReason(e.target.value)}
-                placeholder="e.g. Resource unavailable due to maintenance"
-                autoFocus
-              />
-            </div>
-            <div className="form-actions">
-              <button className="btn btn-secondary" onClick={() => setRejectTarget(null)}>Cancel</button>
-              <button className="btn btn-danger" onClick={handleRejectSubmit}>Confirm Rejection</button>
+            <div style={{ padding: '20px 24px 24px' }}>
+              <div className="form-group">
+                <label style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Reason *</label>
+                <textarea
+                  className="form-control"
+                  rows={3}
+                  value={rejectReason}
+                  onChange={e => setRejectReason(e.target.value)}
+                  placeholder="e.g. Resource unavailable due to maintenance"
+                  autoFocus
+                  style={{ marginTop: 6, resize: 'vertical' }}
+                />
+              </div>
+              <div className="form-actions" style={{ marginTop: 12 }}>
+                <button className="btn btn-secondary" onClick={() => setRejectTarget(null)}>Cancel</button>
+                <button className="btn btn-danger" onClick={handleRejectSubmit}>
+                  <XCircle size={14} /> Confirm Rejection
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-
       {/* ── Booking Detail Modal ── */}
       {detailBooking && (
         <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && setDetailBooking(null)}>
-          <div className="modal-plain" style={{ maxWidth: 500 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h2 style={{ margin: 0 }}>Booking #{detailBooking.id}</h2>
-              <button className="btn btn-sm btn-secondary" onClick={() => setDetailBooking(null)}><X size={14} /></button>
-            </div>
-
-            <div style={{ display: 'grid', gap: 10, fontSize: 14 }}>
-              <Row label="Title"      value={detailBooking.title} />
-              <Row label="Resource"   value={detailBooking.resource?.name} />
-              <Row label="Requested By" value={detailBooking.user?.name} />
-              <Row label="Purpose"    value={detailBooking.purpose} />
-              <Row label="Attendees"  value={detailBooking.expectedAttendees} />
-              <Row label="Start"      value={format(new Date(detailBooking.startTime), 'PPpp')} />
-              <Row label="End"        value={format(new Date(detailBooking.endTime),   'PPpp')} />
-              <Row label="Status"
-                value={
-                  <span className={`badge ${STATUS_BADGE[detailBooking.status] || 'badge-gray'}`}>
-                    {detailBooking.status}
+          <div className="dialog-card" style={{ maxWidth: 520 }}>
+            <div className="dialog-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div className="dialog-icon dialog-icon-primary">
+                  <CalendarCheck size={18} />
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Booking #{detailBooking.id}</h2>
+                  <span className={`badge ${STATUS_BADGE[detailBooking.status] || 'badge-gray'}`} style={{ gap: 4, marginTop: 4, display: 'inline-flex' }}>
+                    {STATUS_ICON[detailBooking.status]}
+                    {STATUS_LABEL[detailBooking.status] || detailBooking.status}
                   </span>
-                }
-              />
-              {detailBooking.rejectionReason && (
-                <Row label="Rejection Reason" value={<span style={{ color: '#dc2626' }}>{detailBooking.rejectionReason}</span>} />
-              )}
-              {detailBooking.recurrenceRule && detailBooking.recurrenceRule !== 'NONE' && (
-                <>
-                  <Row label="Recurrence" value={detailBooking.recurrenceRule.charAt(0) + detailBooking.recurrenceRule.slice(1).toLowerCase()} />
-                  {detailBooking.recurrenceEndDate && (
-                    <Row label="Repeats Until" value={format(new Date(detailBooking.recurrenceEndDate), 'PP')} />
-                  )}
-                  {detailBooking.parentBookingId && (
-                    <Row label="Series Parent" value={`Booking #${detailBooking.parentBookingId}`} />
-                  )}
-                </>
-              )}
-              {detailBooking.notes && <Row label="Notes" value={detailBooking.notes} />}
-              <Row label="Created"    value={format(new Date(detailBooking.createdAt), 'PPpp')} />
+                </div>
+              </div>
+              <button className="btn btn-sm btn-secondary btn-icon" onClick={() => setDetailBooking(null)}>
+                <X size={14} />
+              </button>
             </div>
 
-            <div style={{ marginTop: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '20px 24px' }}>
+              <div className="detail-section">
+                <div className="detail-section-title">Details</div>
+                <div className="detail-grid">
+                  <DetailRow label="Title"     value={detailBooking.title} />
+                  <DetailRow label="Resource"  value={detailBooking.resource?.name} />
+                  <DetailRow label="Requested By" value={detailBooking.user?.name} />
+                  <DetailRow label="Purpose"   value={detailBooking.purpose} />
+                  <DetailRow label="Attendees" value={detailBooking.expectedAttendees} />
+                </div>
+              </div>
+
+              <div className="detail-section">
+                <div className="detail-section-title">Schedule</div>
+                <div className="detail-grid">
+                  <DetailRow label="Start" value={format(new Date(detailBooking.startTime), 'PPpp')} />
+                  <DetailRow label="End"   value={format(new Date(detailBooking.endTime),   'PPpp')} />
+                  {detailBooking.recurrenceRule && detailBooking.recurrenceRule !== 'NONE' && (
+                    <>
+                      <DetailRow label="Recurrence" value={
+                        detailBooking.recurrenceRule.charAt(0) + detailBooking.recurrenceRule.slice(1).toLowerCase()
+                      } />
+                      {detailBooking.recurrenceEndDate && (
+                        <DetailRow label="Repeats Until" value={format(new Date(detailBooking.recurrenceEndDate), 'PP')} />
+                      )}
+                      {detailBooking.parentBookingId && (
+                        <DetailRow label="Series Parent" value={`Booking #${detailBooking.parentBookingId}`} />
+                      )}
+                    </>
+                  )}
+                  <DetailRow label="Created" value={format(new Date(detailBooking.createdAt), 'PPpp')} />
+                </div>
+              </div>
+
+              {(detailBooking.rejectionReason || detailBooking.notes) && (
+                <div className="detail-section">
+                  <div className="detail-section-title">Notes</div>
+                  <div className="detail-grid">
+                    {detailBooking.rejectionReason && (
+                      <DetailRow
+                        label="Rejection Reason"
+                        value={<span style={{ color: '#dc2626' }}>{detailBooking.rejectionReason}</span>}
+                      />
+                    )}
+                    {detailBooking.notes && <DetailRow label="Notes" value={detailBooking.notes} />}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="dialog-footer">
               {detailBooking.recurrenceRule && detailBooking.recurrenceRule !== 'NONE' &&
                (detailBooking.status === 'PENDING' || detailBooking.status === 'APPROVED') && (
-                <button
-                  className="btn btn-danger btn-sm"
-                  onClick={() => handleCancelSeries(detailBooking.id)}
-                >
-                  Cancel Entire Series
+                <button className="btn btn-danger btn-sm" onClick={() => handleCancelSeries(detailBooking.id)}>
+                  <Ban size={13} /> Cancel Entire Series
                 </button>
               )}
-              <button className="btn btn-secondary" style={{ marginLeft: 'auto' }} onClick={() => setDetailBooking(null)}>Close</button>
+              <button className="btn btn-secondary" style={{ marginLeft: 'auto' }} onClick={() => setDetailBooking(null)}>
+                Close
+              </button>
             </div>
           </div>
         </div>
@@ -653,11 +820,20 @@ export default function BookingsPage() {
   )
 }
 
-function Row({ label, value }) {
+function StatChip({ label, value, color, bg }) {
   return (
-    <div style={{ display: 'flex', gap: 8 }}>
-      <span style={{ fontWeight: 600, minWidth: 140, color: '#475569' }}>{label}:</span>
-      <span style={{ color: '#1e293b' }}>{value ?? '—'}</span>
+    <div className="stat-chip" style={{ background: bg, borderColor: color + '33' }}>
+      <span className="stat-chip-value" style={{ color }}>{value}</span>
+      <span className="stat-chip-label">{label}</span>
+    </div>
+  )
+}
+
+function DetailRow({ label, value }) {
+  return (
+    <div className="detail-row">
+      <span className="detail-label">{label}</span>
+      <span className="detail-value">{value ?? '—'}</span>
     </div>
   )
 }
