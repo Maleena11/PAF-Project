@@ -40,6 +40,17 @@ public class Booking {
     @Builder.Default
     private BookingStatus status = BookingStatus.PENDING;
 
+    @NotBlank(message = "Purpose is required")
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String purpose;
+
+    @Min(value = 1, message = "Expected attendees must be at least 1")
+    @Column(name = "expected_attendees")
+    private Integer expectedAttendees;
+
+    @Column(name = "rejection_reason", columnDefinition = "TEXT")
+    private String rejectionReason;
+
     @Column(columnDefinition = "TEXT")
     private String notes;
 
