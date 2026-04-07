@@ -1,14 +1,22 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import resourceService from '../services/resourceService'
 import bookingService from '../services/bookingService'
+import waitlistService from '../services/waitlistService'
 import { useAuth } from '../context/AuthContext'
+import TimeSlotPicker from './TimeSlotPicker'
 
 export default function BookingForm({ onSubmit, onCancel, initialData = null }) {
   const { user } = useAuth()
   const [resources, setResources] = useState([])
   const [availability, setAvailability] = useState(null) // null | true | false
   const [checking, setChecking] = useState(false)
+  const [selectedResource, setSelectedResource] = useState(null)
+
+  // When set, the form is in waitlist mode for this { startTime, endTime }
+  const [waitlistSlot, setWaitlistSlot] = useState(null)
+
   const [form, setForm] = useState({
+
     resourceId:        initialData?.resourceId        ? String(initialData.resourceId) : '',
     title:             initialData?.title             || '',
     purpose:           initialData?.purpose           || '',
@@ -16,6 +24,18 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null }) 
     startTime: '',
     endTime:   '',
     notes:             initialData?.notes             || '',
+
+    resourceId: '',
+    date: '',            // "YYYY-MM-DD" — drives the slot picker
+    title: '',
+    purpose: '',
+    expectedAttendees: '',
+    startTime: '',
+    endTime: '',
+    notes: '',
+    recurrenceRule: 'NONE',
+    recurrenceEndDate: '',
+
   })
 
   useEffect(() => {
@@ -23,17 +43,12 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null }) 
       .then(r => setResources(r.data))
   }, [])
 
-  // Re-check availability whenever resource or times change
+  // Server-side availability check (only in booking mode)
   useEffect(() => {
+    if (waitlistSlot) { setAvailability(null); return }
     const { resourceId, startTime, endTime } = form
-    if (!resourceId || !startTime || !endTime) {
-      setAvailability(null)
-      return
-    }
-    if (new Date(endTime) <= new Date(startTime)) {
-      setAvailability(null)
-      return
-    }
+    if (!resourceId || !startTime || !endTime) { setAvailability(null); return }
+    if (new Date(endTime) <= new Date(startTime)) { setAvailability(null); return }
 
     setChecking(true)
     bookingService
@@ -41,20 +56,93 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null }) 
       .then(r => setAvailability(r.data.available))
       .catch(() => setAvailability(null))
       .finally(() => setChecking(false))
-  }, [form.resourceId, form.startTime, form.endTime])
+  }, [form.resourceId, form.startTime, form.endTime, waitlistSlot])
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (availability === false) return
-    onSubmit({
-      ...form,
-      resourceId: Number(form.resourceId),
-      expectedAttendees: Number(form.expectedAttendees),
-      userId: user.id,
-    })
+  const handleResourceChange = (id) => {
+    setForm(f => ({ ...f, resourceId: id, startTime: '', endTime: '' }))
+    setSelectedResource(resources.find(r => r.id === Number(id)) || null)
+    setWaitlistSlot(null)
   }
+
+  const handleDateChange = (dateStr) => {
+    setForm(f => ({ ...f, date: dateStr, startTime: '', endTime: '' }))
+    setWaitlistSlot(null)
+  }
+
+  const handleSlotSelect = (startStr, endStr) => {
+    setForm(f => ({ ...f, startTime: startStr, endTime: endStr }))
+    setWaitlistSlot(null)
+  }
+
+  const handleWaitlistRequest = (startStr, endStr) => {
+    setWaitlistSlot({ startTime: startStr, endTime: endStr })
+    setForm(f => ({ ...f, startTime: '', endTime: '' })) // clear any booking selection
+  }
+
+  const overCapacity = selectedResource && form.expectedAttendees &&
+    Number(form.expectedAttendees) > selectedResource.capacity
+
+  const occurrenceCount = useMemo(() => {
+    if (!form.recurrenceRule || form.recurrenceRule === 'NONE') return 1
+    if (!form.startTime || !form.recurrenceEndDate) return null
+    let count = 1
+    let cursor = new Date(form.startTime)
+    const endDate = new Date(form.recurrenceEndDate)
+    endDate.setHours(23, 59, 59)
+    for (let i = 0; i < 365; i++) {
+      if (form.recurrenceRule === 'DAILY')        cursor.setDate(cursor.getDate() + 1)
+      else if (form.recurrenceRule === 'WEEKLY')  cursor.setDate(cursor.getDate() + 7)
+      else if (form.recurrenceRule === 'MONTHLY') cursor.setMonth(cursor.getMonth() + 1)
+      if (cursor > endDate) break
+      count++
+    }
+    return count
+  }, [form.startTime, form.recurrenceRule, form.recurrenceEndDate])
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+
+    if (waitlistSlot) {
+      // ── Waitlist submission ──────────────────────────────────────────────
+      try {
+        await waitlistService.join({
+          resourceId:        Number(form.resourceId),
+          userId:            user.id,
+          slotStart:         new Date(waitlistSlot.startTime).toISOString(),
+          slotEnd:           new Date(waitlistSlot.endTime).toISOString(),
+          title:             form.title,
+          purpose:           form.purpose,
+          expectedAttendees: Number(form.expectedAttendees),
+          notes:             form.notes || undefined,
+        })
+        onSubmit({ _waitlist: true }) // signal success to parent
+      } catch (err) {
+        // re-throw so the parent's catch (in BookingsPage) can toast the error
+        throw err
+      }
+    } else {
+      // ── Normal booking submission ────────────────────────────────────────
+      if (availability === false) return
+      onSubmit({
+        ...form,
+        resourceId:        Number(form.resourceId),
+        expectedAttendees: Number(form.expectedAttendees),
+        userId:            user.id,
+        recurrenceEndDate: form.recurrenceRule !== 'NONE' && form.recurrenceEndDate
+          ? form.recurrenceEndDate
+          : undefined,
+      })
+    }
+  }
+
+  const fmtSlot = (dt) => {
+    if (!dt) return ''
+    const d = new Date(dt)
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}`
+  }
+  const pad = (n) => String(n).padStart(2, '0')
 
   return (
     <form onSubmit={handleSubmit}>
@@ -66,7 +154,7 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null }) 
           className="form-control"
           required
           value={form.resourceId}
-          onChange={e => set('resourceId', e.target.value)}
+          onChange={e => handleResourceChange(e.target.value)}
         >
           <option value="">— Select a resource —</option>
           {resources.map(r => (
@@ -102,55 +190,141 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null }) 
         />
       </div>
 
-      {/* Expected Attendees */}
-      <div className="form-group">
-        <label>Expected Attendees *</label>
-        <input
-          className="form-control"
-          type="number"
-          min={1}
-          required
-          value={form.expectedAttendees}
-          onChange={e => set('expectedAttendees', e.target.value)}
-          placeholder="e.g. 20"
-        />
-      </div>
-
-      {/* Start / End Times */}
+      {/* Date + Attendees side by side */}
       <div className="form-grid">
-        <div className="form-group">
-          <label>Start Time *</label>
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label>Date *</label>
           <input
             className="form-control"
-            type="datetime-local"
+            type="date"
             required
-            value={form.startTime}
-            onChange={e => set('startTime', e.target.value)}
+            min={new Date().toISOString().slice(0, 10)}
+            value={form.date}
+            onChange={e => handleDateChange(e.target.value)}
           />
         </div>
-        <div className="form-group">
-          <label>End Time *</label>
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label>
+            Attendees *
+            {selectedResource && (
+              <span style={{ fontWeight: 400, color: '#64748b', marginLeft: 6 }}>
+                (max {selectedResource.capacity})
+              </span>
+            )}
+          </label>
           <input
             className="form-control"
-            type="datetime-local"
+            type="number"
+            min={1}
+            max={selectedResource ? selectedResource.capacity : undefined}
             required
-            value={form.endTime}
-            onChange={e => set('endTime', e.target.value)}
+            value={form.expectedAttendees}
+            onChange={e => set('expectedAttendees', e.target.value)}
+            placeholder="e.g. 20"
+            style={overCapacity ? { borderColor: '#dc2626' } : {}}
           />
         </div>
       </div>
+      {overCapacity && (
+        <p style={{ color: '#dc2626', fontSize: 13, marginTop: 6, marginBottom: 0 }}>
+          Exceeds room capacity of {selectedResource.capacity}. Please reduce attendees or choose a larger room.
+        </p>
+      )}
 
-      {/* Availability indicator */}
-      {form.resourceId && form.startTime && form.endTime && (
-        <div style={{ marginBottom: 12, fontSize: 13, fontWeight: 500 }}>
-          {checking && <span style={{ color: '#64748b' }}>⏳ Checking availability…</span>}
-          {!checking && availability === true  && <span style={{ color: '#16a34a' }}>✓ Resource is available for this time slot</span>}
-          {!checking && availability === false && <span style={{ color: '#dc2626' }}>✗ Resource is already booked for this time slot</span>}
+      {/* Time Slot Picker */}
+      {form.resourceId && form.date && (
+        <div className="form-group" style={{ marginTop: 16 }}>
+          <label>
+            Time Slot *
+            {!form.startTime && !waitlistSlot && (
+              <span style={{ fontWeight: 400, color: '#64748b', marginLeft: 8 }}>
+                Click a free slot to book — click a booked slot to waitlist
+              </span>
+            )}
+          </label>
+          <TimeSlotPicker
+            resourceId={form.resourceId}
+            date={form.date}
+            startTime={form.startTime}
+            endTime={form.endTime}
+            onSelect={handleSlotSelect}
+            onWaitlistRequest={handleWaitlistRequest}
+          />
         </div>
       )}
 
+      {/* Waitlist mode banner */}
+      {waitlistSlot && (
+        <div className="waitlist-banner">
+          <div className="waitlist-banner-icon">⏳</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 600, marginBottom: 2 }}>Joining waitlist</div>
+            <div style={{ fontSize: 13 }}>
+              {selectedResource?.name} · {form.date} · {fmtSlot(waitlistSlot.startTime)} – {fmtSlot(waitlistSlot.endTime)}
+            </div>
+            <div style={{ fontSize: 12, marginTop: 4, color: '#92400e' }}>
+              You'll be automatically approved and notified if this slot becomes available.
+            </div>
+          </div>
+          <button
+            type="button"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#92400e', fontSize: 16, padding: '0 4px' }}
+            onClick={() => setWaitlistSlot(null)}
+            title="Cancel waitlist"
+          >✕</button>
+        </div>
+      )}
+
+      {/* Availability double-check (booking mode only) */}
+      {!waitlistSlot && form.resourceId && form.startTime && form.endTime && (
+        <div style={{ marginBottom: 12, fontSize: 13, fontWeight: 500 }}>
+          {checking && <span style={{ color: '#64748b' }}>⏳ Confirming availability…</span>}
+          {!checking && availability === true  && <span style={{ color: '#16a34a' }}>✓ Slot confirmed available</span>}
+          {!checking && availability === false && <span style={{ color: '#dc2626' }}>✗ Slot no longer available — please choose another</span>}
+        </div>
+      )}
+
+      {/* Recurrence (booking mode only) */}
+      {!waitlistSlot && (
+        <div className={`form-group${form.recurrenceRule !== 'NONE' ? ' form-grid' : ''}`}
+             style={form.recurrenceRule !== 'NONE' ? { marginBottom: 0 } : {}}>
+          <div className={form.recurrenceRule !== 'NONE' ? 'form-group' : ''} style={{ marginBottom: 0 }}>
+            <label>Repeat</label>
+            <select
+              className="form-control"
+              value={form.recurrenceRule}
+              onChange={e => set('recurrenceRule', e.target.value)}
+            >
+              <option value="NONE">Does not repeat</option>
+              <option value="DAILY">Daily</option>
+              <option value="WEEKLY">Weekly</option>
+              <option value="MONTHLY">Monthly</option>
+            </select>
+          </div>
+          {form.recurrenceRule !== 'NONE' && (
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label>Repeat Until *</label>
+              <input
+                className="form-control"
+                type="date"
+                required
+                min={form.startTime ? form.startTime.slice(0, 10) : undefined}
+                value={form.recurrenceEndDate}
+                onChange={e => set('recurrenceEndDate', e.target.value)}
+              />
+            </div>
+          )}
+        </div>
+      )}
+      {!waitlistSlot && form.recurrenceRule !== 'NONE' && occurrenceCount != null && (
+        <p style={{ fontSize: 13, color: '#2563eb', margin: '8px 0 0', fontWeight: 500 }}>
+          Will create {occurrenceCount} booking{occurrenceCount !== 1 ? 's' : ''} total
+          {occurrenceCount >= 365 ? ' (capped at 365)' : ''}.
+        </p>
+      )}
+
       {/* Optional Notes */}
-      <div className="form-group">
+      <div className="form-group" style={{ marginTop: 16 }}>
         <label>Additional Notes</label>
         <textarea
           className="form-control"
@@ -165,10 +339,14 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null }) 
         <button type="button" className="btn btn-secondary" onClick={onCancel}>Cancel</button>
         <button
           type="submit"
-          className="btn btn-primary"
-          disabled={availability === false || checking}
+          className={`btn ${waitlistSlot ? 'btn-waitlist' : 'btn-primary'}`}
+          disabled={
+            (!waitlistSlot && (!form.startTime || !form.endTime)) ||
+            (!waitlistSlot && (availability === false || checking)) ||
+            !!overCapacity
+          }
         >
-          Submit Booking
+          {waitlistSlot ? '⏳ Join Waitlist' : 'Submit Booking'}
         </button>
       </div>
     </form>

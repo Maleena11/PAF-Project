@@ -43,6 +43,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate);
 
+    // All bookings that belong to the same recurring series (parent + children)
+    @Query("SELECT b FROM Booking b WHERE b.id = :parentId OR b.parentBookingId = :parentId ORDER BY b.startTime ASC")
+    List<Booking> findSeriesBookings(@Param("parentId") Long parentId);
+
     // Check availability for a resource in a time window (excludes a booking by id if editing)
     @Query("SELECT COUNT(b) = 0 FROM Booking b WHERE b.resource.id = :resourceId " +
            "AND b.status NOT IN ('CANCELLED', 'REJECTED') " +

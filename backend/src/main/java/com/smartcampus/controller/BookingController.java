@@ -1,5 +1,6 @@
 package com.smartcampus.controller;
 
+import com.smartcampus.dto.BookingCreationResponseDTO;
 import com.smartcampus.dto.BookingRequestDTO;
 import com.smartcampus.dto.BookingStatusUpdateDTO;
 import com.smartcampus.model.Booking;
@@ -74,8 +75,15 @@ public class BookingController {
 
     // POST /api/bookings  → 201 Created
     @PostMapping
-    public ResponseEntity<Booking> createBooking(@Valid @RequestBody BookingRequestDTO dto) {
+    public ResponseEntity<BookingCreationResponseDTO> createBooking(@Valid @RequestBody BookingRequestDTO dto) {
         return ResponseEntity.status(201).body(bookingService.createBooking(dto));
+    }
+
+    // PATCH /api/bookings/{id}/cancel-series  → cancels all future bookings in the series
+    @PatchMapping("/{id}/cancel-series")
+    public ResponseEntity<Map<String, Integer>> cancelSeries(@PathVariable Long id) {
+        int count = bookingService.cancelSeries(id);
+        return ResponseEntity.ok(Map.of("cancelled", count));
     }
 
     // PATCH /api/bookings/{id}/status  → approve / reject (with reason) / cancel / complete

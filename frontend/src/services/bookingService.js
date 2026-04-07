@@ -24,6 +24,9 @@ const bookingService = {
     api.patch(`/bookings/${id}/status`, { status, reason }),
 
   delete: (id) => api.delete(`/bookings/${id}`),
+
+  // Cancels all PENDING/APPROVED bookings in the same recurring series
+  cancelSeries: (id) => api.patch(`/bookings/${id}/cancel-series`),
 }
 
 export default bookingService
