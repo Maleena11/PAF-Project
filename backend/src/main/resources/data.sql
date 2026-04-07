@@ -20,12 +20,12 @@ VALUES
   (5, 'Library Study Room', 'STUDY_ROOM',   'Library, Second Floor', 20,  'MAINTENANCE','Quiet study room — under maintenance',               CURRENT_TIMESTAMP);
 
 -- Bookings
-INSERT INTO bookings (id, resource_id, user_id, title, start_time, end_time, status, purpose, notes, created_at)
+INSERT INTO bookings (id, resource_id, user_id, title, start_time, end_time, status, purpose, expected_attendees, notes, created_at)
 VALUES
-  (1, 1, 2, 'PAF Lecture',          '2026-03-15 09:00:00', '2026-03-15 11:00:00', 'APPROVED',  'Weekly module lecture for first-year students',      'Weekly PAF module lecture',         CURRENT_TIMESTAMP),
-  (2, 2, 3, 'Web Dev Workshop',     '2026-03-16 14:00:00', '2026-03-16 17:00:00', 'PENDING',   'Hands-on React and Spring Boot training',            'React & Spring Boot workshop',      CURRENT_TIMESTAMP),
-  (3, 3, 4, 'Group Project Meeting','2026-03-17 10:00:00', '2026-03-17 12:00:00', 'APPROVED',  'Planning for smart campus group project deliverables','Smart Campus project discussion',   CURRENT_TIMESTAMP),
-  (4, 1, 2, 'Guest Lecture',        '2026-03-18 09:00:00', '2026-03-18 10:00:00', 'CANCELLED', 'Guest speaker session on campus life',              'Speaker cancelled',                 CURRENT_TIMESTAMP);
+  (1, 1, 2, 'PAF Lecture',          '2026-03-15 09:00:00', '2026-03-15 11:00:00', 'APPROVED',  'Weekly PAF module lecture',         120, 'Weekly PAF module lecture',         CURRENT_TIMESTAMP),
+  (2, 2, 3, 'Web Dev Workshop',     '2026-03-16 14:00:00', '2026-03-16 17:00:00', 'PENDING',   'React & Spring Boot workshop',      30,  'React & Spring Boot workshop',      CURRENT_TIMESTAMP),
+  (3, 3, 4, 'Group Project Meeting','2026-03-17 10:00:00', '2026-03-17 12:00:00', 'APPROVED',  'Smart Campus project discussion',   8,   'Smart Campus project discussion',   CURRENT_TIMESTAMP),
+  (4, 1, 2, 'Guest Lecture',        '2026-03-18 09:00:00', '2026-03-18 10:00:00', 'CANCELLED', 'Industry guest speaker session',    150, 'Speaker cancelled',                 CURRENT_TIMESTAMP);
 
 -- Tickets
 INSERT INTO tickets (id, title, description, category, priority, status, user_id, created_at)

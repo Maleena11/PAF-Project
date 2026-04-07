@@ -7,8 +7,8 @@ import api from '../services/api'
 const DEMO_ACCOUNTS = [
   { label: 'Admin', email: 'admin@campus.edu', role: 'ADMIN' },
   { label: 'Staff', email: 'bob@campus.edu', role: 'STAFF' },
-  { label: 'Student', email: 'alice@campus.edu', role: 'STUDENT' },
-  { label: 'Student', email: 'carol@campus.edu', role: 'STUDENT' },
+  { label: 'Student1', email: 'alice@campus.edu', role: 'STUDENT' },
+  { label: 'Student2', email: 'carol@campus.edu', role: 'STUDENT' },
 ]
 
 export default function LoginPage() {
@@ -27,7 +27,7 @@ export default function LoginPage() {
       login(res.data)
       navigate('/dashboard')
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Check your email.')
+      setError(err.message || 'Login failed. Check your email.')
     } finally {
       setLoading(false)
     }
@@ -41,7 +41,7 @@ export default function LoginPage() {
       login(res.data)
       navigate('/dashboard')
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed.')
+      setError(err.message || 'Login failed.')
     } finally {
       setLoading(false)
     }
