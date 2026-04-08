@@ -16,26 +16,16 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null }) 
   const [waitlistSlot, setWaitlistSlot] = useState(null)
 
   const [form, setForm] = useState({
-
     resourceId:        initialData?.resourceId        ? String(initialData.resourceId) : '',
+    date: '',            // "YYYY-MM-DD" — drives the slot picker
     title:             initialData?.title             || '',
     purpose:           initialData?.purpose           || '',
     expectedAttendees: initialData?.expectedAttendees ? String(initialData.expectedAttendees) : '',
     startTime: '',
-    endTime:   '',
-    notes:             initialData?.notes             || '',
-
-    resourceId: '',
-    date: '',            // "YYYY-MM-DD" — drives the slot picker
-    title: '',
-    purpose: '',
-    expectedAttendees: '',
-    startTime: '',
     endTime: '',
-    notes: '',
+    notes:             initialData?.notes             || '',
     recurrenceRule: 'NONE',
     recurrenceEndDate: '',
-
   })
 
   useEffect(() => {

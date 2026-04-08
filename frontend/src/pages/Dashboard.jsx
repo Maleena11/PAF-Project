@@ -722,22 +722,24 @@ export default function Dashboard() {
       {reBooking && (
         <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && setReBooking(null)}>
           <div className="modal">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <RotateCcw size={18} /> Rebook Resource
-              </h2>
-              <button className="btn btn-sm btn-secondary" onClick={() => setReBooking(null)}>
-                <X size={14} />
+            <div className="modal-header">
+              <div>
+                <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <RotateCcw size={18} /> Rebook Resource
+                </h2>
+                <p>Details from your previous booking are prefilled. Pick new times and submit.</p>
+              </div>
+              <button className="btn btn-sm btn-secondary btn-icon" onClick={() => setReBooking(null)} title="Close">
+                <X size={16} />
               </button>
             </div>
-            <p style={{ fontSize: 13, color: '#64748b', marginBottom: 16 }}>
-              Details from your previous booking are prefilled. Pick new times and submit.
-            </p>
-            <BookingForm
-              initialData={reBooking}
-              onSubmit={handleRebook}
-              onCancel={() => setReBooking(null)}
-            />
+            <div className="modal-body">
+              <BookingForm
+                initialData={reBooking}
+                onSubmit={handleRebook}
+                onCancel={() => setReBooking(null)}
+              />
+            </div>
           </div>
         </div>
       )}
