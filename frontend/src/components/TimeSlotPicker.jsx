@@ -52,7 +52,6 @@ export default function TimeSlotPicker({
   startTime, endTime,
   onSelect,
   onWaitlistRequest,
-  onBookingsLoaded,
 }) {
   const [bookings,      setBookings]      = useState([])
   const [loading,       setLoading]       = useState(false)
@@ -62,11 +61,11 @@ export default function TimeSlotPicker({
 
   useEffect(() => {
     resetSelection()
-    if (!resourceId || !date) { setBookings([]); onBookingsLoaded?.([]) ; return }
+    if (!resourceId || !date) { setBookings([]); return }
     setLoading(true)
     bookingService.getByResource(resourceId)
-      .then(r => { setBookings(r.data || []); onBookingsLoaded?.(r.data || []) })
-      .catch(() => { setBookings([]); onBookingsLoaded?.([]) })
+      .then(r => setBookings(r.data || []))
+      .catch(() => setBookings([]))
       .finally(() => setLoading(false))
   }, [resourceId, date])
 
