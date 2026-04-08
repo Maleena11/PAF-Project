@@ -2,6 +2,13 @@ import {
   Building2, FlaskConical, Users, Dumbbell,
   BookOpen, Mic2, LayoutGrid, MapPin, Pencil, Trash2
 } from 'lucide-react'
+import { BACKEND_URL } from '../services/api'
+
+const resolveImageUrl = (url) => {
+  if (!url) return null
+  if (url.startsWith('http')) return url
+  return BACKEND_URL + url
+}
 
 const TYPE_META = {
   LECTURE_HALL: { label: 'Lecture Hall', Icon: Building2,   color: '#4f46e5', bg: 'linear-gradient(135deg,#e0e7ff,#c7d2fe)' },
@@ -47,7 +54,7 @@ export default function ResourceList({ resources, onEdit, onDelete, onView, canM
             {/* ── Image / Coloured Header ── */}
             <div className="resource-card-img" style={{ background: r.imageUrl ? undefined : type.bg }}>
               {r.imageUrl ? (
-                <img src={r.imageUrl} alt={r.name} />
+                <img src={resolveImageUrl(r.imageUrl)} alt={r.name} />
               ) : (
                 <div className="resource-card-placeholder">
                   <div className="resource-card-icon-wrap" style={{ background: type.color }}>

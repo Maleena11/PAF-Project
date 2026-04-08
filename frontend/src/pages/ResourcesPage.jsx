@@ -1,8 +1,15 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import toast from 'react-hot-toast'
-import { Plus, Search, X, Building2, MapPin, Users, FlaskConical, Dumbbell, BookOpen, Mic2, LayoutGrid } from 'lucide-react'
+import { Plus, Search, X, Check, ChevronDown, Building2, MapPin, Users, FlaskConical, Dumbbell, BookOpen, Mic2, LayoutGrid, SlidersHorizontal } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import resourceService from '../services/resourceService'
+import { BACKEND_URL } from '../services/api'
+
+const resolveImageUrl = (url) => {
+  if (!url) return null
+  if (url.startsWith('http')) return url
+  return BACKEND_URL + url
+}
 import ResourceList from '../components/ResourceList'
 import ResourceForm from '../components/ResourceForm'
 
@@ -21,6 +28,61 @@ const STATUS_META = {
   OCCUPIED:    { label: 'Occupied',    dot: '#d97706', color: '#92400e', bg: '#fef3c7', border: '#fcd34d' },
   MAINTENANCE: { label: 'Maintenance', dot: '#6366f1', color: '#3730a3', bg: '#e0e7ff', border: '#a5b4fc' },
   RETIRED:     { label: 'Retired',     dot: '#ef4444', color: '#991b1b', bg: '#fee2e2', border: '#fca5a5' },
+}
+
+const TYPE_OPTIONS = [
+  { value: '', label: 'All Types', Icon: LayoutGrid, color: '#64748b', bg: '#f1f5f9' },
+  ...['LECTURE_HALL','LAB','MEETING_ROOM','SPORTS','STUDY_ROOM','AUDITORIUM','OTHER'].map(k => ({ value: k, ...TYPE_META[k] })),
+]
+
+const STATUS_OPTIONS = [
+  { value: '', label: 'All Statuses', dot: '#94a3b8', color: '#64748b', bg: '#f8fafc', border: '#e2e8f0' },
+  ...['AVAILABLE','OCCUPIED','MAINTENANCE','RETIRED'].map(k => ({ value: k, ...STATUS_META[k] })),
+]
+
+function FilterDropdown({ label, value, onChange, options, renderOption, renderTrigger }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    const handler = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const selected = options.find(o => o.value === value) || options[0]
+
+  return (
+    <div className="filter-group" ref={ref}>
+      <label className="filter-label">{label}</label>
+      <div className="custom-dropdown">
+        <button
+          type="button"
+          className={`custom-dropdown-trigger${open ? ' open' : ''}${value ? ' is-active' : ''}`}
+          onClick={() => setOpen(o => !o)}
+        >
+          <span className="custom-dropdown-trigger-content">{renderTrigger(selected)}</span>
+          <ChevronDown size={13} className={`dropdown-chevron${open ? ' rotated' : ''}`} />
+        </button>
+
+        {open && (
+          <div className="custom-dropdown-menu">
+            {options.map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                className={`custom-dropdown-option${opt.value === value ? ' selected' : ''}`}
+                onClick={() => { onChange(opt.value); setOpen(false) }}
+              >
+                <span className="custom-dropdown-option-content">{renderOption(opt)}</span>
+                {opt.value === value && <Check size={13} className="option-check" />}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
 
 export default function ResourcesPage() {
@@ -91,9 +153,6 @@ export default function ResourcesPage() {
     } catch (err) { toast.error(err.message) }
   }
 
-  const TYPES    = ['LECTURE_HALL', 'LAB', 'MEETING_ROOM', 'SPORTS', 'STUDY_ROOM', 'AUDITORIUM', 'OTHER']
-  const STATUSES = ['AVAILABLE', 'OCCUPIED', 'MAINTENANCE', 'RETIRED']
-
   return (
     <div>
       <div className="page-header page-header-row">
@@ -127,23 +186,85 @@ export default function ResourcesPage() {
       )}
 
       <div className="toolbar">
+        {/* Search */}
         <div className="search-box">
           <Search size={15} />
-          <input placeholder="Search resources…" value={search} onChange={e => setSearch(e.target.value)} />
+          <input
+            placeholder="Search by name…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          {search && (
+            <button className="search-clear-btn" onClick={() => setSearch('')} aria-label="Clear search">
+              <X size={13} />
+            </button>
+          )}
         </div>
-        <select className="filter-select" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
-          <option value="">All Types</option>
-          {TYPES.map(t => <option key={t} value={t}>{TYPE_META[t]?.label || t.replace('_', ' ')}</option>)}
-        </select>
-        <select className="filter-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-          <option value="">All Statuses</option>
-          {STATUSES.map(s => <option key={s} value={s}>{STATUS_META[s]?.label || s}</option>)}
-        </select>
+
+        {/* Divider */}
+        <div className="toolbar-divider" />
+
+        {/* Filters label */}
+        <span className="toolbar-filters-label">
+          <SlidersHorizontal size={13} />
+          Filters
+        </span>
+
+        {/* Type filter */}
+        <FilterDropdown
+          label="Type"
+          value={typeFilter}
+          onChange={setTypeFilter}
+          options={TYPE_OPTIONS}
+          renderTrigger={opt => (
+            <>
+              <span className="dd-type-icon" style={{ background: opt.bg, color: opt.color }}>
+                <opt.Icon size={12} />
+              </span>
+              <span>{opt.label}</span>
+            </>
+          )}
+          renderOption={opt => (
+            <>
+              <span className="dd-type-icon" style={{ background: opt.bg, color: opt.color }}>
+                <opt.Icon size={12} />
+              </span>
+              <span>{opt.label}</span>
+            </>
+          )}
+        />
+
+        {/* Status filter */}
+        <FilterDropdown
+          label="Status"
+          value={statusFilter}
+          onChange={setStatusFilter}
+          options={STATUS_OPTIONS}
+          renderTrigger={opt => (
+            <>
+              <span className="dd-status-dot" style={{ background: opt.dot }} />
+              <span style={{ color: opt.color }}>{opt.label}</span>
+            </>
+          )}
+          renderOption={opt => (
+            <>
+              <span className="dd-status-dot" style={{ background: opt.dot }} />
+              <span>{opt.label}</span>
+            </>
+          )}
+        />
+
+        {/* Clear */}
         {(search || typeFilter || statusFilter) && (
-          <button className="btn btn-sm btn-secondary" onClick={() => { setSearch(''); setTypeFilter(''); setStatusFilter('') }}>
-            <X size={13} /> Clear filters
+          <button
+            className="btn btn-sm btn-secondary toolbar-clear-btn"
+            onClick={() => { setSearch(''); setTypeFilter(''); setStatusFilter('') }}
+          >
+            <X size={12} /> Clear
           </button>
         )}
+
+        {/* Results count */}
         {!loading && (
           <span className="resource-results-count">
             {filtered.length} {filtered.length === 1 ? 'resource' : 'resources'}
@@ -197,7 +318,7 @@ export default function ResourcesPage() {
                 {/* Image */}
                 {r.imageUrl && (
                   <img
-                    src={r.imageUrl}
+                    src={resolveImageUrl(r.imageUrl)}
                     alt={r.name}
                     style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 10, flexShrink: 0 }}
                   />
