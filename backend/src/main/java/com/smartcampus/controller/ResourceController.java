@@ -32,10 +32,10 @@ public class ResourceController {
             return ResponseEntity.ok(resourceService.searchResources(search));
         }
         if (status != null && type != null) {
-            return ResponseEntity.ok(resourceService.getAvailableResources());
+            return ResponseEntity.ok(resourceService.getResourcesByStatusAndType(status, type));
         }
         if (status != null) {
-            return ResponseEntity.ok(resourceService.getAvailableResources());
+            return ResponseEntity.ok(resourceService.getResourcesByStatus(status));
         }
         if (type != null) {
             return ResponseEntity.ok(resourceService.getResourcesByType(type));

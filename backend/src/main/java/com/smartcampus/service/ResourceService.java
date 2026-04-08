@@ -30,8 +30,16 @@ public class ResourceService {
         return resourceRepository.findByStatus(ResourceStatus.AVAILABLE);
     }
 
+    public List<Resource> getResourcesByStatus(ResourceStatus status) {
+        return resourceRepository.findByStatus(status);
+    }
+
     public List<Resource> getResourcesByType(ResourceType type) {
         return resourceRepository.findByType(type);
+    }
+
+    public List<Resource> getResourcesByStatusAndType(ResourceStatus status, ResourceType type) {
+        return resourceRepository.findByStatusAndType(status, type);
     }
 
     public List<Resource> searchResources(String name) {
@@ -50,6 +58,9 @@ public class ResourceService {
         existing.setCapacity(updatedResource.getCapacity());
         existing.setStatus(updatedResource.getStatus());
         existing.setDescription(updatedResource.getDescription());
+        if (updatedResource.getImageUrl() != null) {
+            existing.setImageUrl(updatedResource.getImageUrl());
+        }
         return resourceRepository.save(existing);
     }
 
