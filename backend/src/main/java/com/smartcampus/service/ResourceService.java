@@ -58,6 +58,9 @@ public class ResourceService {
         existing.setCapacity(updatedResource.getCapacity());
         existing.setStatus(updatedResource.getStatus());
         existing.setDescription(updatedResource.getDescription());
+        if (updatedResource.getImageUrl() != null) {
+            existing.setImageUrl(updatedResource.getImageUrl());
+        }
         return resourceRepository.save(existing);
     }
 
