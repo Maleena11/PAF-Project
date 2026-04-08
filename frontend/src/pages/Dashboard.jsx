@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Building2, CalendarCheck, Ticket, CheckCircle, Clock, Users, AlertCircle, X, CalendarPlus, MessageSquarePlus, Search, Bell, MapPin, RotateCcw } from 'lucide-react'
+import { Building2, CalendarCheck, Ticket, CheckCircle, Clock, Users, AlertCircle, X, CalendarPlus, MessageSquarePlus, Search, Bell, MapPin, RotateCcw, Calendar, Shield } from 'lucide-react'
 import BookingForm from '../components/BookingForm'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -55,6 +55,15 @@ export default function Dashboard() {
     const id = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(id)
   }, [isAdmin])
+
+  // Try to fetch campus-wide bookings for peak hours; fall back to own data on failure
+  const [peakBookings, setPeakBookings] = useState(undefined) // undefined=loading | null=use own | array=campus
+  useEffect(() => {
+    if (isAdmin || !user?.id) { setPeakBookings(null); return }
+    bookingService.getAll()
+      .then(r => setPeakBookings(Array.isArray(r.data) ? r.data : null))
+      .catch(() => setPeakBookings(null))
+  }, [isAdmin, user?.id])
 
   const handleRebook = async (data) => {
     try {
@@ -155,10 +164,123 @@ export default function Dashboard() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1>Welcome back, {user?.name?.split(' ')[0]}{isAdmin ? '' : ' 👋'}</h1>
-        <p>{isAdmin ? 'System overview — all users and resources.' : "Here's what's happening on campus today."}</p>
-      </div>
+      {isAdmin ? (
+        /* ── Admin Hero Banner ── */
+        <div style={{
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #1d4ed8 100%)',
+          borderRadius: 16,
+          padding: '28px 32px',
+          marginBottom: 24,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          boxShadow: '0 4px 28px rgba(15,23,42,0.45)',
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          <div style={{ position: 'absolute', right: -60, top: -60, width: 220, height: 220, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', right: 80, bottom: -80, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.03)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', left: -30, top: '50%', transform: 'translateY(-50%)', width: 120, height: 120, borderRadius: '50%', background: 'rgba(37,99,235,0.12)', pointerEvents: 'none' }} />
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: 14,
+              background: 'rgba(255,255,255,0.1)',
+              border: '1px solid rgba(255,255,255,0.18)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <Shield size={28} color="#93c5fd" />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 5 }}>
+                <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: '-0.3px' }}>
+                  Administrator Dashboard
+                </h1>
+                <span style={{
+                  background: 'rgba(96,165,250,0.2)',
+                  border: '1px solid rgba(96,165,250,0.4)',
+                  color: '#93c5fd',
+                  fontSize: 10, fontWeight: 700,
+                  padding: '2px 9px', borderRadius: 20,
+                  letterSpacing: '0.08em', textTransform: 'uppercase',
+                }}>
+                  Admin
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                <p style={{ margin: 0, fontSize: 13, color: '#94a3b8' }}>
+                  Welcome back, {user?.name?.split(' ')[0]} — full system control
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 0 2px rgba(74,222,128,0.3)' }} />
+                  <span style={{ fontSize: 11, color: '#4ade80', fontWeight: 600 }}>All Systems Operational</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
+            <div style={{
+              background: 'rgba(255,255,255,0.1)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: 10, padding: '8px 16px',
+              color: '#e0f2fe', fontSize: 13, fontWeight: 600,
+              backdropFilter: 'blur(4px)',
+            }}>
+              {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <div style={{
+                background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 8, padding: '4px 10px', fontSize: 11, color: '#94a3b8', fontWeight: 500,
+              }}>
+                {userCount ?? 0} users
+              </div>
+              <div style={{
+                background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 8, padding: '4px 10px', fontSize: 11, color: '#94a3b8', fontWeight: 500,
+              }}>
+                {resources.length} resources
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* ── User Hero Banner ── */
+        <div style={{
+          background: 'linear-gradient(135deg, #1e3a5f 0%, #2563eb 60%, #3b82f6 100%)',
+          borderRadius: 16,
+          padding: '28px 32px',
+          marginBottom: 24,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          boxShadow: '0 4px 20px rgba(37,99,235,0.25)',
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          <div style={{ position: 'absolute', right: -40, top: -40, width: 180, height: 180, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', right: 60, bottom: -60, width: 140, height: 140, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
+          <div>
+            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: '#fff', letterSpacing: '-0.3px' }}>
+              Welcome back, {user?.name?.split(' ')[0]} 👋
+            </h1>
+            <p style={{ margin: '6px 0 0', fontSize: 14, color: '#bfdbfe', fontWeight: 400 }}>
+              Here's what's happening on campus today.
+            </p>
+          </div>
+          <div style={{
+            background: 'rgba(255,255,255,0.12)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            borderRadius: 10, padding: '8px 16px',
+            color: '#e0f2fe', fontSize: 13, fontWeight: 600,
+            flexShrink: 0, backdropFilter: 'blur(4px)',
+          }}>
+            {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+          </div>
+        </div>
+      )}
 
       {/* ── Booking Countdown Banner (student only) ── */}
       {happeningNow && (
@@ -242,9 +364,58 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* ── Admin Quick Actions ── */}
+      {isAdmin && (
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Quick Actions</span>
+            <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+            {[
+              { icon: Users,         label: 'Manage Users',     sub: 'View & edit accounts',      to: '/admin/users', bg: '#2563eb', light: '#dbeafe' },
+              { icon: Building2,     label: 'Manage Resources', sub: 'Add, edit & track status',  to: '/resources',   bg: '#7c3aed', light: '#ede9fe' },
+              { icon: CalendarCheck, label: 'All Bookings',     sub: 'Review reservations',       to: '/bookings',    bg: '#16a34a', light: '#dcfce7' },
+              { icon: Ticket,        label: 'All Tickets',      sub: 'Manage support cases',      to: '/tickets',     bg: '#dc2626', light: '#fee2e2' },
+            ].map(({ icon: Icon, label, sub, to, bg, light }) => (
+              <Link
+                key={to}
+                to={to}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 14,
+                  padding: '14px 18px', borderRadius: 12,
+                  background: '#fff', border: `1.5px solid ${light}`,
+                  borderTop: `3px solid ${bg}`,
+                  textDecoration: 'none', color: 'inherit',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                  transition: 'box-shadow 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)' }}
+                onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.06)' }}
+              >
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10, background: light,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
+                  <Icon size={18} color={bg} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: '#111827', lineHeight: 1.3 }}>{label}</div>
+                  <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{sub}</div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── Pending Approvals Queue (admin only) ── */}
       {isAdmin && (
         <div style={{ marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Pending Actions</span>
+            <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
+          </div>
           <BookingApprovalQueue onUpdate={loadStats} />
         </div>
       )}
@@ -252,13 +423,23 @@ export default function Dashboard() {
       {/* ── Resource Utilization Summary (admin only) ── */}
       {isAdmin && (
         <div style={{ marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Resource Management</span>
+            <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
+          </div>
           <ResourceUtilizationSummary onUpdate={loadStats} />
         </div>
       )}
 
       {/* ── Admin: full-width recent tickets with inline status control ── */}
       {isAdmin && (
-        <RecentTicketsAdmin onUpdate={loadStats} />
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Support Tickets</span>
+            <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
+          </div>
+          <RecentTicketsAdmin onUpdate={loadStats} />
+        </div>
       )}
 
       {/* ── User: Quick Actions ── */}
@@ -451,6 +632,211 @@ export default function Dashboard() {
                   )
                 })}
               </div>
+            )}
+          </div>
+        )
+      })()}
+
+      {/* ── User: Booking Calendar Mini-View ── */}
+      {!isAdmin && (() => {
+        const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+        const STATUS_DOT = { APPROVED: '#16a34a', PENDING: '#d97706', COMPLETED: '#2563eb' }
+
+        const todayMidnight = new Date()
+        todayMidnight.setHours(0, 0, 0, 0)
+
+        const days = Array.from({ length: 7 }, (_, i) => {
+          const d = new Date(todayMidnight)
+          d.setDate(todayMidnight.getDate() + i)
+          return d
+        })
+
+        const activeBookings = bookings.filter(b => b.status !== 'CANCELLED' && b.status !== 'REJECTED')
+
+        const bookingsForDay = (day) =>
+          activeBookings.filter(b => {
+            const s = new Date(b.startTime)
+            s.setHours(0, 0, 0, 0)
+            return s.getTime() === day.getTime()
+          })
+
+        return (
+          <div className="card" style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Calendar size={18} color="#2563eb" /> This Week
+              </h2>
+              <Link to="/bookings" style={{ fontSize: 13, color: '#2563eb', textDecoration: 'none' }}>View all →</Link>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
+              {days.map((day, i) => {
+                const isToday    = day.getTime() === todayMidnight.getTime()
+                const dayBookings = bookingsForDay(day)
+                const hasBkgs    = dayBookings.length > 0
+
+                return (
+                  <Link
+                    key={i}
+                    to="/bookings"
+                    style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center',
+                      padding: '10px 4px', borderRadius: 10, textDecoration: 'none',
+                      background: isToday ? '#2563eb' : hasBkgs ? '#eff6ff' : '#fafafa',
+                      border: `1.5px solid ${isToday ? '#2563eb' : hasBkgs ? '#bfdbfe' : '#f1f5f9'}`,
+                      transition: 'box-shadow 0.15s',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 3px 10px rgba(0,0,0,0.1)' }}
+                    onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none' }}
+                  >
+                    <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.04em', marginBottom: 4,
+                      color: isToday ? '#bfdbfe' : '#94a3b8' }}>
+                      {DAY_NAMES[day.getDay()]}
+                    </span>
+                    <span style={{ fontSize: 17, fontWeight: 700, marginBottom: 6,
+                      color: isToday ? '#fff' : hasBkgs ? '#1e40af' : '#374151' }}>
+                      {day.getDate()}
+                    </span>
+                    {/* booking dots */}
+                    <div style={{ display: 'flex', gap: 3, justifyContent: 'center', minHeight: 8, flexWrap: 'wrap' }}>
+                      {dayBookings.slice(0, 3).map((b, j) => (
+                        <div key={j} style={{
+                          width: 6, height: 6, borderRadius: '50%',
+                          background: isToday ? '#fff' : (STATUS_DOT[b.status] || '#94a3b8'),
+                        }} />
+                      ))}
+                      {dayBookings.length > 3 && (
+                        <span style={{ fontSize: 9, fontWeight: 700,
+                          color: isToday ? '#bfdbfe' : '#6b7280' }}>
+                          +{dayBookings.length - 3}
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
+
+            {/* legend */}
+            <div style={{ display: 'flex', gap: 16, marginTop: 12, paddingTop: 12, borderTop: '1px solid #f1f5f9', flexWrap: 'wrap' }}>
+              {Object.entries({ Approved: '#16a34a', Pending: '#d97706', Completed: '#2563eb' }).map(([lbl, col]) => (
+                <span key={lbl} style={{ fontSize: 11, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: col }} /> {lbl}
+                </span>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* ── User: Peak Hours Hint ── */}
+      {!isAdmin && peakBookings !== undefined && (() => {
+        const SLOTS = [
+          { start: 7,  end: 9,  label: '7am',  range: '7–9am'    },
+          { start: 9,  end: 11, label: '9am',  range: '9–11am'   },
+          { start: 11, end: 13, label: '11am', range: '11am–1pm' },
+          { start: 13, end: 15, label: '1pm',  range: '1–3pm'    },
+          { start: 15, end: 17, label: '3pm',  range: '3–5pm'    },
+          { start: 17, end: 19, label: '5pm',  range: '5–7pm'    },
+          { start: 19, end: 21, label: '7pm',  range: '7–9pm'    },
+        ]
+
+        const source     = peakBookings ?? bookings
+        const isCampus   = Array.isArray(peakBookings)
+        const activeBkgs = source.filter(b => b.status !== 'CANCELLED' && b.status !== 'REJECTED')
+
+        const slotData = SLOTS.map(s => ({
+          ...s,
+          count: activeBkgs.filter(b => {
+            const h = new Date(b.startTime).getHours()
+            return h >= s.start && h < s.end
+          }).length,
+        }))
+
+        const maxCount  = Math.max(...slotData.map(s => s.count), 1)
+        const hasData   = slotData.some(s => s.count > 0)
+
+        const getColor = (count) => {
+          const r = count / maxCount
+          if (r >= 0.65) return '#ef4444'
+          if (r >= 0.30) return '#f59e0b'
+          return '#22c55e'
+        }
+
+        const quietSlots = [...slotData]
+          .filter(s => s.start >= 8 && s.start <= 17)
+          .sort((a, b) => a.count - b.count)
+          .slice(0, 2)
+
+        return (
+          <div className="card" style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Clock size={18} color="#d97706" /> Peak Hours
+              </h2>
+              <span style={{ fontSize: 11, color: '#94a3b8', background: '#f8fafc', padding: '2px 8px', borderRadius: 6, border: '1px solid #e2e8f0' }}>
+                {isCampus ? 'Campus-wide' : 'Your bookings'}
+              </span>
+            </div>
+
+            {!hasData ? (
+              <div style={{ textAlign: 'center', padding: '24px 0', color: '#94a3b8', fontSize: 13 }}>
+                Not enough data yet — book a resource to see peak hour patterns.
+              </div>
+            ) : (
+              <>
+                {/* Bar chart */}
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 80, marginBottom: 2 }}>
+                  {slotData.map(s => {
+                    const barH = s.count > 0 ? Math.max((s.count / maxCount) * 68, 6) : 0
+                    return (
+                      <div key={s.start} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+                        {s.count > 0 && (
+                          <span style={{ fontSize: 9, color: '#6b7280', marginBottom: 2, fontWeight: 600 }}>{s.count}</span>
+                        )}
+                        <div style={{
+                          width: '100%', height: barH, borderRadius: '4px 4px 0 0',
+                          background: getColor(s.count), transition: 'height 0.4s ease',
+                        }} />
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Hour labels */}
+                <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+                  {slotData.map(s => (
+                    <div key={s.start} style={{
+                      flex: 1, textAlign: 'center', fontSize: 9, color: '#94a3b8',
+                      fontWeight: 500, paddingTop: 3, borderTop: '1px solid #f1f5f9',
+                    }}>
+                      {s.label}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Legend + best time in one row */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    {[['#22c55e', 'Quiet'], ['#f59e0b', 'Moderate'], ['#ef4444', 'Busy']].map(([col, lbl]) => (
+                      <span key={lbl} style={{ fontSize: 11, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: 2, background: col }} /> {lbl}
+                      </span>
+                    ))}
+                  </div>
+                  {quietSlots.length > 0 && (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      padding: '6px 12px', background: '#f0fdf4',
+                      borderRadius: 8, border: '1px solid #bbf7d0',
+                    }}>
+                      <CheckCircle size={13} color="#16a34a" />
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#15803d' }}>Best: </span>
+                      <span style={{ fontSize: 11, color: '#166534' }}>{quietSlots.map(s => s.range).join(' · ')}</span>
+                    </div>
+                  )}
+                </div>
+              </>
             )}
           </div>
         )
