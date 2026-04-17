@@ -6,6 +6,7 @@ import com.smartcampus.model.Notification.NotificationType;
 import com.smartcampus.model.User;
 import com.smartcampus.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -16,6 +17,7 @@ import java.util.List;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final NotificationPreferenceService notificationPreferenceService;
 
     public List<Notification> getNotificationsForUser(Long userId) {
         return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId);
@@ -29,9 +31,12 @@ public class NotificationService {
         return notificationRepository.countByUserIdAndReadFalse(userId);
     }
 
-    public Notification markAsRead(Long notificationId) {
+    public Notification markAsRead(Long notificationId, Long requestingUserId) {
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Notification not found with id: " + notificationId));
+        if (!notification.getUser().getId().equals(requestingUserId)) {
+            throw new AccessDeniedException("You do not have permission to modify this notification");
+        }
         notification.setRead(true);
         return notificationRepository.save(notification);
     }
@@ -42,6 +47,9 @@ public class NotificationService {
 
     public Notification createNotification(User user, String title, String message,
                                             NotificationType type, Long referenceId) {
+        if (!notificationPreferenceService.isEnabled(user.getId(), type)) {
+            return null;
+        }
         Notification notification = Notification.builder()
                 .user(user)
                 .title(title)
@@ -53,7 +61,12 @@ public class NotificationService {
         return notificationRepository.save(notification);
     }
 
-    public void deleteNotification(Long id) {
-        notificationRepository.deleteById(id);
+    public void deleteNotification(Long id, Long requestingUserId) {
+        Notification notification = notificationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Notification not found with id: " + id));
+        if (!notification.getUser().getId().equals(requestingUserId)) {
+            throw new AccessDeniedException("You do not have permission to delete this notification");
+        }
+        notificationRepository.delete(notification);
     }
 }

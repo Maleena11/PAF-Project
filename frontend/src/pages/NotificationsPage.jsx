@@ -2,10 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react'
 import toast from 'react-hot-toast'
 import {
   Bell, BellOff, CheckCheck, CalendarCheck,
-  Ticket, AlertCircle, Trash2, RefreshCw,
+  Ticket, AlertCircle, Trash2, RefreshCw, Settings,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useNotifications } from '../context/NotificationContext'
 import api from '../services/api'
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -19,6 +21,8 @@ const TYPE_CONFIG = {
 
 const FILTERS = ['ALL', 'BOOKING', 'TICKET', 'SYSTEM', 'GENERAL']
 
+const NOTIF_ROUTE = { BOOKING: '/bookings', TICKET: '/tickets' }
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function relativeTime(dateStr) {
@@ -31,15 +35,21 @@ function relativeTime(dateStr) {
 
 // ── NotificationItem ──────────────────────────────────────────────────────────
 
-function NotificationItem({ n, onMarkRead, onDelete }) {
+function NotificationItem({ n, onMarkRead, onDelete, onNavigate }) {
   const cfg = TYPE_CONFIG[n.type] || TYPE_CONFIG.GENERAL
   const { Icon } = cfg
+  const isNavigable = !!NOTIF_ROUTE[n.type] && !!n.referenceId
+
+  const handleClick = () => {
+    if (!n.read) onMarkRead(n.id)
+    if (isNavigable) onNavigate(n.type)
+  }
 
   return (
     <div
       className={`notif-item ${n.read ? '' : 'unread'}`}
-      onClick={() => !n.read && onMarkRead(n.id)}
-      style={{ cursor: n.read ? 'default' : 'pointer' }}
+      onClick={handleClick}
+      style={{ cursor: isNavigable || !n.read ? 'pointer' : 'default' }}
     >
       {/* Icon */}
       <div className="notif-icon-wrap" style={{ background: cfg.bg }}>
@@ -71,6 +81,85 @@ function NotificationItem({ n, onMarkRead, onDelete }) {
   )
 }
 
+// ── PreferencesPanel ──────────────────────────────────────────────────────────
+
+function PreferencesPanel({ userId, onClose }) {
+  const [prefs, setPrefs]       = useState({})
+  const [saving, setSaving]     = useState(null)
+  const [loading, setLoading]   = useState(true)
+
+  useEffect(() => {
+    api.get(`/notifications/preferences/${userId}`)
+      .then(r => {
+        const map = {}
+        r.data.forEach(p => { map[p.type] = p.enabled })
+        setPrefs(map)
+      })
+      .catch(() => toast.error('Failed to load preferences'))
+      .finally(() => setLoading(false))
+  }, [userId])
+
+  const toggle = async (type) => {
+    const newVal = !prefs[type]
+    setSaving(type)
+    try {
+      await api.put(`/notifications/preferences/${userId}/${type}`, { enabled: newVal })
+      setPrefs(prev => ({ ...prev, [type]: newVal }))
+      toast.success(`${TYPE_CONFIG[type]?.label} notifications ${newVal ? 'enabled' : 'disabled'}`)
+    } catch {
+      toast.error('Failed to update preference')
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  return (
+    <div className="notif-prefs-panel">
+      <div className="notif-prefs-header">
+        <span style={{ fontWeight: 600 }}>Notification Preferences</span>
+        <button className="btn btn-icon btn-secondary" onClick={onClose} title="Close">✕</button>
+      </div>
+      <p className="notif-prefs-desc">Choose which notification categories you want to receive.</p>
+      {loading ? (
+        <div className="loading-container"><div className="spinner" /></div>
+      ) : (
+        <div className="notif-prefs-list">
+          {Object.entries(TYPE_CONFIG).map(([type, cfg]) => {
+            const enabled = prefs[type] !== false
+            const isSaving = saving === type
+            return (
+              <div key={type} className="notif-pref-row">
+                <div className="notif-pref-info">
+                  <div className="notif-icon-wrap" style={{ background: cfg.bg }}>
+                    <cfg.Icon size={15} color={cfg.color} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 500, fontSize: 14 }}>{cfg.label}</div>
+                    <div style={{ fontSize: 12, color: '#64748b' }}>
+                      {type === 'BOOKING'  && 'Room bookings and reservations'}
+                      {type === 'TICKET'   && 'Support tickets and updates'}
+                      {type === 'SYSTEM'   && 'System alerts and announcements'}
+                      {type === 'GENERAL'  && 'General campus notifications'}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  className={`notif-toggle-btn ${enabled ? 'on' : 'off'}`}
+                  onClick={() => toggle(type)}
+                  disabled={isSaving}
+                  title={enabled ? 'Disable' : 'Enable'}
+                >
+                  <span className="notif-toggle-knob" />
+                </button>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── NotificationPanel (exported for re-use) ───────────────────────────────────
 
 export function NotificationPanel({ userId, role }) {
@@ -78,8 +167,11 @@ export function NotificationPanel({ userId, role }) {
   const [loading, setLoading]             = useState(true)
   const [refreshing, setRefreshing]       = useState(false)
   const [filter, setFilter]               = useState('ALL')
+  const [showPrefs, setShowPrefs]         = useState(false)
 
   const isAdmin = role === 'ADMIN'
+  const { decrement, reset } = useNotifications()
+  const navigate = useNavigate()
 
   const load = useCallback((showSpinner = false) => {
     if (showSpinner) setRefreshing(true)
@@ -92,19 +184,28 @@ export function NotificationPanel({ userId, role }) {
   useEffect(() => { load() }, [load])
 
   const markRead = async (id) => {
-    await api.patch(`/notifications/${id}/read`)
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
+    await api.patch(`/notifications/${id}/read`, null, { params: { userId } })
+    setNotifications(prev => {
+      const wasUnread = prev.find(n => n.id === id && !n.read)
+      if (wasUnread) decrement(1)
+      return prev.map(n => n.id === id ? { ...n, read: true } : n)
+    })
   }
 
   const markAll = async () => {
     await api.patch(`/notifications/user/${userId}/read-all`)
     setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+    reset()
     toast.success('All notifications marked as read')
   }
 
   const deleteNotif = async (id) => {
-    await api.delete(`/notifications/${id}`)
-    setNotifications(prev => prev.filter(n => n.id !== id))
+    await api.delete(`/notifications/${id}`, { params: { userId } })
+    setNotifications(prev => {
+      const wasUnread = prev.find(n => n.id === id && !n.read)
+      if (wasUnread) decrement(1)
+      return prev.filter(n => n.id !== id)
+    })
     toast.success('Notification deleted')
   }
 
@@ -150,8 +251,20 @@ export function NotificationPanel({ userId, role }) {
               <CheckCheck size={13} /> Mark all read
             </button>
           )}
+          <button
+            className={`btn btn-secondary btn-sm ${showPrefs ? 'active' : ''}`}
+            onClick={() => setShowPrefs(p => !p)}
+            title="Preferences"
+          >
+            <Settings size={13} /> Preferences
+          </button>
         </div>
       </div>
+
+      {/* ── Preferences panel ── */}
+      {showPrefs && (
+        <PreferencesPanel userId={userId} onClose={() => setShowPrefs(false)} />
+      )}
 
       {/* ── Summary stats (admin only) ── */}
       {isAdmin && (
@@ -214,6 +327,7 @@ export function NotificationPanel({ userId, role }) {
               n={n}
               onMarkRead={markRead}
               onDelete={deleteNotif}
+              onNavigate={(type) => navigate(NOTIF_ROUTE[type])}
             />
           ))}
         </div>

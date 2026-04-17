@@ -1,24 +1,12 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { NavLink } from 'react-router-dom'
 import { LayoutDashboard, Building2, CalendarCheck, Ticket, Bell, LogOut, Users } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
-import api from '../services/api'
+import { useNotifications } from '../context/NotificationContext'
 
 export default function Navbar() {
   const { user, logout } = useAuth()
-  const [unreadCount, setUnreadCount] = useState(0)
-
-  useEffect(() => {
-    if (!user?.id) return
-    const fetchCount = () => {
-      api.get(`/notifications/user/${user.id}/count`)
-        .then(r => setUnreadCount(r.data.count))
-        .catch(() => {})
-    }
-    fetchCount()
-    const interval = setInterval(fetchCount, 30000)
-    return () => clearInterval(interval)
-  }, [user?.id])
+  const { unreadCount } = useNotifications()
 
   const initials = user?.name
     ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
