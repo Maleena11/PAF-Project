@@ -22,6 +22,7 @@ export default function StatCard({ icon: Icon, label, value, color = 'blue', loa
       gap: 16,
       boxShadow: '0 1px 3px rgba(0,0,0,.08)',
       border: '1px solid #f1f5f9',
+      borderLeft: `4px solid ${c.icon}`,
     }}>
       <div style={{
         background: c.bg,

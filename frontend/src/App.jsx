@@ -10,6 +10,7 @@ import TicketsPage from './pages/TicketsPage'
 import NotificationsPage from './pages/NotificationsPage'
 import LoginPage from './pages/LoginPage'
 import AdminUsersPage from './pages/AdminUsersPage'
+import OAuthCallback from './pages/OAuthCallback'
 
 function AppLayout() {
   const { user } = useAuth()
@@ -39,8 +40,9 @@ export default function App() {
       <BrowserRouter>
         <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/*"     element={<AppLayout />} />
+          <Route path="/login"           element={<LoginPage />} />
+          <Route path="/oauth2/callback" element={<OAuthCallback />} />
+          <Route path="/*"               element={<AppLayout />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
