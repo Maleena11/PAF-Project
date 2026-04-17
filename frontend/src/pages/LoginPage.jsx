@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Building2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import api from '../services/api'
+import api, { BACKEND_URL } from '../services/api'
 
 const DEMO_ACCOUNTS = [
   { label: 'Admin', email: 'admin@campus.edu', role: 'ADMIN' },
@@ -109,7 +109,7 @@ export default function LoginPage() {
         <div style={{ margin: '20px 0 0' }}>
           <button
             type="button"
-            onClick={() => { window.location.href = 'http://localhost:8080/oauth2/authorization/google' }}
+            onClick={() => { window.location.href = `${BACKEND_URL}/oauth2/authorization/google` }}
             disabled={loading}
             style={{
               width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   Users, RefreshCw, Shield, Search, UserCheck,
   GraduationCap, Briefcase, ChevronUp, ChevronDown,
@@ -12,8 +12,8 @@ import toast from 'react-hot-toast'
 const ROLES = ['STUDENT', 'STAFF', 'ADMIN']
 
 const ROLE_CFG = {
-  ADMIN:   { bg: '#fee2e2', color: '#dc2626', border: '#fecaca', icon: Shield,        label: 'Admin'   },
-  STAFF:   { bg: '#dbeafe', color: '#2563eb', border: '#bfdbfe', icon: Briefcase,    label: 'Staff'   },
+  ADMIN:   { bg: '#fee2e2', color: '#dc2626', border: '#fecaca', icon: Shield,         label: 'Admin'   },
+  STAFF:   { bg: '#dbeafe', color: '#2563eb', border: '#bfdbfe', icon: Briefcase,     label: 'Staff'   },
   STUDENT: { bg: '#dcfce7', color: '#16a34a', border: '#bbf7d0', icon: GraduationCap, label: 'Student' },
 }
 
@@ -34,26 +34,35 @@ function initials(name = '') {
 /* ─── Shared form field ─────────────────────────────── */
 function Field({ label, required, error, children }) {
   return (
-    <div style={{ marginBottom: 16 }}>
-      <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6, letterSpacing: '0.03em' }}>
+    <div style={{ marginBottom: 18 }}>
+      <label style={{
+        display: 'block', fontSize: 12, fontWeight: 700,
+        color: '#374151', marginBottom: 7, letterSpacing: '0.04em', textTransform: 'uppercase',
+      }}>
         {label}{required && <span style={{ color: '#dc2626', marginLeft: 2 }}>*</span>}
       </label>
       {children}
-      {error && <div style={{ fontSize: 11, color: '#dc2626', marginTop: 4 }}>{error}</div>}
+      {error && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#dc2626', marginTop: 5 }}>
+          <AlertTriangle size={10} />
+          {error}
+        </div>
+      )}
     </div>
   )
 }
 
 const inputStyle = (err) => ({
-  width: '100%', height: 38, padding: '0 12px',
+  width: '100%', height: 42, padding: '0 13px',
   border: `1.5px solid ${err ? '#fca5a5' : '#e2e8f0'}`,
-  borderRadius: 8, fontSize: 13, color: '#1e293b',
-  background: err ? '#fff5f5' : '#fff', outline: 'none',
-  transition: 'border-color 0.15s',
+  borderRadius: 9, fontSize: 14, color: '#1e293b',
+  background: err ? '#fff8f8' : '#fafbfc',
+  outline: 'none', transition: 'border-color 0.15s, box-shadow 0.15s',
+  boxSizing: 'border-box',
 })
 
 /* ─── Add / Edit Modal ──────────────────────────────── */
-function UserFormModal({ initial, onClose, onSave, saving }) {
+function UserFormModal({ initial, onClose, onSave, saving, isSelf }) {
   const isEdit = !!initial
   const [form, setForm] = useState({
     name:  initial?.name  ?? '',
@@ -78,46 +87,60 @@ function UserFormModal({ initial, onClose, onSave, saving }) {
     if (validate()) onSave(form)
   }
 
+  const accentColor = isEdit ? '#2563eb' : '#16a34a'
+  const accentBg    = isEdit ? '#dbeafe' : '#dcfce7'
+
   return (
     <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && !saving && onClose()}>
-      <div className="modal" style={{ maxWidth: 460, width: '100%' }}>
+      <div className="modal" style={{ maxWidth: 480, width: '100%' }}>
 
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 22 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+          padding: '24px 28px 20px', borderBottom: '1px solid #f1f5f9',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{
-              width: 40, height: 40, borderRadius: 10,
-              background: isEdit ? '#dbeafe' : '#dcfce7',
+              width: 44, height: 44, borderRadius: 12,
+              background: accentBg, border: `1.5px solid ${accentColor}22`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              {isEdit ? <Pencil size={18} color="#2563eb" /> : <UserPlus size={18} color="#16a34a" />}
+              {isEdit ? <Pencil size={19} color={accentColor} /> : <UserPlus size={19} color={accentColor} />}
             </div>
             <div>
-              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#0f172a' }}>
+              <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.2px' }}>
                 {isEdit ? 'Edit User' : 'Add New User'}
               </h2>
-              <p style={{ margin: '2px 0 0', fontSize: 12, color: '#94a3b8' }}>
+              <p style={{ margin: '3px 0 0', fontSize: 12, color: '#94a3b8' }}>
                 {isEdit ? `Editing ${initial.name}` : 'Create a new campus account'}
               </p>
             </div>
           </div>
           <button
             onClick={onClose} disabled={saving}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 4, borderRadius: 6 }}
+            style={{
+              background: '#f1f5f9', border: 'none', cursor: 'pointer',
+              color: '#64748b', padding: 6, borderRadius: 8,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.12s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0' }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#f1f5f9' }}
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        {/* Body */}
+        <form onSubmit={handleSubmit} style={{ padding: '24px 28px 28px' }}>
           <Field label="Full Name" required error={errs.name}>
             <input
               style={inputStyle(errs.name)}
               placeholder="e.g. Jane Smith"
               value={form.name}
               onChange={e => set('name', e.target.value)}
-              onFocus={e => { e.target.style.borderColor = '#2563eb' }}
-              onBlur={e => { e.target.style.borderColor = errs.name ? '#fca5a5' : '#e2e8f0' }}
+              onFocus={e => { e.target.style.borderColor = accentColor; e.target.style.boxShadow = `0 0 0 3px ${accentColor}18` }}
+              onBlur={e => { e.target.style.borderColor = errs.name ? '#fca5a5' : '#e2e8f0'; e.target.style.boxShadow = 'none' }}
               autoFocus
             />
           </Field>
@@ -129,40 +152,53 @@ function UserFormModal({ initial, onClose, onSave, saving }) {
               placeholder="e.g. jane@example.com"
               value={form.email}
               onChange={e => set('email', e.target.value)}
-              onFocus={e => { e.target.style.borderColor = '#2563eb' }}
-              onBlur={e => { e.target.style.borderColor = errs.email ? '#fca5a5' : '#e2e8f0' }}
+              onFocus={e => { e.target.style.borderColor = accentColor; e.target.style.boxShadow = `0 0 0 3px ${accentColor}18` }}
+              onBlur={e => { e.target.style.borderColor = errs.email ? '#fca5a5' : '#e2e8f0'; e.target.style.boxShadow = 'none' }}
             />
           </Field>
 
           <Field label="Role">
-            <div style={{ display: 'flex', gap: 8 }}>
-              {ROLES.map(r => {
-                const cfg = ROLE_CFG[r]
-                const active = form.role === r
-                return (
-                  <button
-                    key={r} type="button"
-                    onClick={() => set('role', r)}
-                    style={{
-                      flex: 1, padding: '8px 0', borderRadius: 8, cursor: 'pointer',
-                      border: `1.5px solid ${active ? cfg.color : '#e2e8f0'}`,
-                      background: active ? cfg.bg : '#fff',
-                      color: active ? cfg.color : '#64748b',
-                      fontSize: 12, fontWeight: 700,
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                      transition: 'all 0.15s',
-                    }}
-                  >
-                    <cfg.icon size={16} />
-                    {cfg.label}
-                  </button>
-                )
-              })}
-            </div>
+            {isSelf ? (
+              <div style={{
+                padding: '10px 14px', borderRadius: 9, background: '#f8fafc',
+                border: '1.5px solid #e2e8f0', fontSize: 13, color: '#94a3b8', fontStyle: 'italic',
+              }}>
+                You cannot change your own role
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 10 }}>
+                {ROLES.map(r => {
+                  const cfg = ROLE_CFG[r]
+                  const active = form.role === r
+                  return (
+                    <button
+                      key={r} type="button"
+                      onClick={() => set('role', r)}
+                      style={{
+                        flex: 1, padding: '11px 0', borderRadius: 10, cursor: 'pointer',
+                        border: `2px solid ${active ? cfg.color : '#e2e8f0'}`,
+                        background: active ? cfg.bg : '#fff',
+                        color: active ? cfg.color : '#94a3b8',
+                        fontSize: 12, fontWeight: 700,
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+                        transition: 'all 0.15s',
+                        boxShadow: active ? `0 2px 8px ${cfg.color}22` : 'none',
+                      }}
+                    >
+                      <cfg.icon size={17} />
+                      {cfg.label}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </Field>
 
           {/* Actions */}
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 24, paddingTop: 20, borderTop: '1px solid #f1f5f9' }}>
+          <div style={{
+            display: 'flex', gap: 10, justifyContent: 'flex-end',
+            marginTop: 26, paddingTop: 22, borderTop: '1px solid #f1f5f9',
+          }}>
             <button
               type="button" onClick={onClose} disabled={saving}
               className="btn btn-secondary"
@@ -173,10 +209,10 @@ function UserFormModal({ initial, onClose, onSave, saving }) {
               type="submit" disabled={saving}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 7,
-                padding: '8px 20px', borderRadius: 8, border: 'none',
-                background: isEdit ? '#2563eb' : '#16a34a',
-                color: '#fff', fontSize: 13, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer',
-                opacity: saving ? 0.7 : 1,
+                padding: '9px 22px', borderRadius: 9, border: 'none',
+                background: accentColor, color: '#fff', fontSize: 13, fontWeight: 700,
+                cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1,
+                boxShadow: `0 2px 8px ${accentColor}44`, transition: 'opacity 0.15s',
               }}
             >
               {saving
@@ -197,31 +233,32 @@ function UserFormModal({ initial, onClose, onSave, saving }) {
 function DeleteModal({ target, onClose, onConfirm, deleting }) {
   return (
     <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && !deleting && onClose()}>
-      <div className="modal" style={{ maxWidth: 400, width: '100%', textAlign: 'center' }}>
+      <div className="modal" style={{ maxWidth: 400, width: '100%', textAlign: 'center', padding: 32 }}>
         <div style={{
-          width: 52, height: 52, borderRadius: '50%',
-          background: '#fee2e2', margin: '0 auto 16px',
+          width: 56, height: 56, borderRadius: '50%',
+          background: '#fee2e2', margin: '0 auto 18px',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 0 0 8px #fee2e244',
         }}>
-          <AlertTriangle size={24} color="#dc2626" />
+          <AlertTriangle size={26} color="#dc2626" />
         </div>
 
-        <h2 style={{ margin: '0 0 8px', fontSize: 17, fontWeight: 800, color: '#0f172a' }}>
+        <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.2px' }}>
           Delete User
         </h2>
-        <p style={{ margin: '0 0 6px', fontSize: 13, color: '#64748b', lineHeight: 1.6 }}>
+        <p style={{ margin: '0 0 6px', fontSize: 14, color: '#475569', lineHeight: 1.7 }}>
           Are you sure you want to delete{' '}
           <strong style={{ color: '#1e293b' }}>{target.name}</strong>?
         </p>
-        <p style={{ margin: '0 0 24px', fontSize: 12, color: '#94a3b8' }}>
-          This will permanently remove the account and cannot be undone.
+        <p style={{ margin: '0 0 28px', fontSize: 12, color: '#94a3b8', lineHeight: 1.6 }}>
+          This will permanently remove the account and all associated data. This action cannot be undone.
         </p>
 
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
           <button
             onClick={onClose} disabled={deleting}
             className="btn btn-secondary"
-            style={{ minWidth: 100 }}
+            style={{ minWidth: 100, padding: '9px 20px' }}
           >
             Cancel
           </button>
@@ -229,14 +266,15 @@ function DeleteModal({ target, onClose, onConfirm, deleting }) {
             onClick={onConfirm} disabled={deleting}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 7,
-              padding: '8px 20px', borderRadius: 8, border: 'none', minWidth: 120,
+              padding: '9px 22px', borderRadius: 9, border: 'none', minWidth: 120,
               background: '#dc2626', color: '#fff', fontSize: 13, fontWeight: 700,
               cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.7 : 1,
+              boxShadow: '0 2px 8px rgba(220,38,38,0.35)', transition: 'opacity 0.15s',
             }}
           >
             {deleting
               ? <><div className="spinner" style={{ width: 14, height: 14 }} /> Deleting…</>
-              : <><Trash2 size={14} /> Delete</>
+              : <><Trash2 size={14} /> Delete User</>
             }
           </button>
         </div>
@@ -250,16 +288,18 @@ export default function AdminUsersPage() {
   const { user } = useAuth()
   const navigate  = useNavigate()
 
-  const [users,      setUsers]      = useState([])
-  const [loading,    setLoading]    = useState(true)
-  const [saving,     setSaving]     = useState(false)
-  const [deleting,   setDeleting]   = useState(false)
-  const [addModal,   setAddModal]   = useState(false)
-  const [editUser,   setEditUser]   = useState(null)  // user to edit
-  const [deleteUser, setDeleteUser] = useState(null)  // user to delete
-  const [search,     setSearch]     = useState('')
-  const [roleFilter, setRoleFilter] = useState('ALL')
-  const [sort,       setSort]       = useState({ col: 'name', dir: 'asc' })
+  const [users,        setUsers]        = useState([])
+  const [loading,      setLoading]      = useState(true)
+  const [saving,       setSaving]       = useState(false)
+  const [deleting,     setDeleting]     = useState(false)
+  const [addModal,     setAddModal]     = useState(false)
+  const [editUser,     setEditUser]     = useState(null)
+  const [deleteUser,   setDeleteUser]   = useState(null)
+  const [search,       setSearch]       = useState('')
+  const [roleFilter,   setRoleFilter]   = useState('ALL')
+  const [sort,         setSort]         = useState({ col: 'name', dir: 'asc' })
+  const [roleDropdown, setRoleDropdown] = useState(null)
+  const [lastRefreshed, setLastRefreshed] = useState(null)
 
   useEffect(() => {
     if (user?.role !== 'ADMIN') { navigate('/dashboard', { replace: true }); return }
@@ -269,7 +309,7 @@ export default function AdminUsersPage() {
   function fetchUsers() {
     setLoading(true)
     api.get('/auth/users')
-      .then(r => setUsers(Array.isArray(r.data) ? r.data : []))
+      .then(r => { setUsers(Array.isArray(r.data) ? r.data : []); setLastRefreshed(new Date()) })
       .catch(() => toast.error('Failed to load users'))
       .finally(() => setLoading(false))
   }
@@ -320,6 +360,17 @@ export default function AdminUsersPage() {
     setSort(prev => prev.col === col
       ? { col, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
       : { col, dir: 'asc' })
+  }
+
+  async function handleQuickRoleChange(userId, newRole) {
+    setRoleDropdown(null)
+    try {
+      const r = await api.patch(`/auth/users/${userId}/role`, { role: newRole })
+      setUsers(prev => prev.map(u => u.id === userId ? r.data : u))
+      toast.success('Role updated')
+    } catch (err) {
+      toast.error(err.message || 'Failed to update role')
+    }
   }
 
   const counts = useMemo(() => ({
@@ -401,8 +452,13 @@ export default function AdminUsersPage() {
           </div>
         </div>
 
-        {/* Banner actions */}
-        <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
+          {lastRefreshed && (
+            <span style={{ fontSize: 10, color: 'rgba(148,163,184,0.8)', letterSpacing: '0.02em' }}>
+              Updated {lastRefreshed.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </span>
+          )}
+          <div style={{ display: 'flex', gap: 10 }}>
           <button
             onClick={fetchUsers}
             style={{
@@ -430,31 +486,41 @@ export default function AdminUsersPage() {
           >
             <UserPlus size={15} /> Add User
           </button>
+          </div>
         </div>
       </div>
 
       {/* ── Stat Cards ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
         {[
-          { icon: UserCheck,     label: 'Total Users', value: counts.total,   color: '#2563eb', bg: '#dbeafe' },
-          { icon: GraduationCap, label: 'Students',    value: counts.student, color: '#16a34a', bg: '#dcfce7' },
-          { icon: Briefcase,     label: 'Staff',       value: counts.staff,   color: '#7c3aed', bg: '#ede9fe' },
-          { icon: Shield,        label: 'Admins',      value: counts.admin,   color: '#dc2626', bg: '#fee2e2' },
-        ].map(({ icon: Icon, label, value, color, bg }) => (
+          { icon: UserCheck,     label: 'Total Users', value: counts.total,   pct: null,                                          color: '#2563eb', bg: '#dbeafe' },
+          { icon: GraduationCap, label: 'Students',    value: counts.student, pct: counts.total ? Math.round(counts.student / counts.total * 100) : 0, color: '#16a34a', bg: '#dcfce7' },
+          { icon: Briefcase,     label: 'Staff',       value: counts.staff,   pct: counts.total ? Math.round(counts.staff   / counts.total * 100) : 0, color: '#7c3aed', bg: '#ede9fe' },
+          { icon: Shield,        label: 'Admins',      value: counts.admin,   pct: counts.total ? Math.round(counts.admin   / counts.total * 100) : 0, color: '#dc2626', bg: '#fee2e2' },
+        ].map(({ icon: Icon, label, value, pct, color, bg }) => (
           <div key={label} style={{
-            background: '#fff', borderRadius: 12, padding: '18px 22px',
-            display: 'flex', alignItems: 'center', gap: 14,
-            boxShadow: '0 1px 3px rgba(0,0,0,.08)',
+            background: '#fff', borderRadius: 14, padding: '20px 22px',
+            display: 'flex', alignItems: 'center', gap: 16,
+            boxShadow: '0 1px 4px rgba(0,0,0,.07), 0 4px 16px rgba(0,0,0,.04)',
             border: '1px solid #f1f5f9', borderLeft: `4px solid ${color}`,
+            transition: 'box-shadow 0.15s',
           }}>
             <div style={{
-              width: 44, height: 44, borderRadius: 10, background: bg,
+              width: 48, height: 48, borderRadius: 12, background: bg,
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>
-              <Icon size={20} color={color} />
+              <Icon size={22} color={color} />
             </div>
-            <div>
-              <div style={{ fontSize: 26, fontWeight: 800, color, lineHeight: 1 }}>{value}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                <div style={{ fontSize: 28, fontWeight: 800, color, lineHeight: 1 }}>{value}</div>
+                {pct !== null && (
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, color: color + 'aa',
+                    background: bg, padding: '1px 6px', borderRadius: 20,
+                  }}>{pct}%</span>
+                )}
+              </div>
               <div style={{ fontSize: 12, color: '#64748b', marginTop: 4, fontWeight: 500 }}>{label}</div>
             </div>
           </div>
@@ -470,21 +536,38 @@ export default function AdminUsersPage() {
           padding: '16px 20px', borderBottom: '1px solid #f1f5f9',
           background: '#fafafa', flexWrap: 'wrap',
         }}>
+          {/* Search */}
           <div style={{ position: 'relative', flex: '1 1 220px', minWidth: 180 }}>
-            <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+            <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
             <input
               type="text"
               placeholder="Search by name or email…"
               value={search}
               onChange={e => setSearch(e.target.value)}
               style={{
-                width: '100%', paddingLeft: 32, paddingRight: 12,
-                height: 36, border: '1px solid #e2e8f0', borderRadius: 8,
+                width: '100%', paddingLeft: 34, paddingRight: search ? 32 : 12,
+                height: 36, border: '1px solid #e2e8f0', borderRadius: 9,
                 fontSize: 13, background: '#fff', outline: 'none', color: '#1e293b',
+                boxSizing: 'border-box',
               }}
             />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                style={{
+                  position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                  background: '#e2e8f0', border: 'none', cursor: 'pointer',
+                  borderRadius: '50%', width: 18, height: 18,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#64748b',
+                }}
+              >
+                <X size={10} />
+              </button>
+            )}
           </div>
 
+          {/* Role filter pills */}
           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
             {['ALL', ...ROLES].map(r => {
               const active = roleFilter === r
@@ -493,9 +576,10 @@ export default function AdminUsersPage() {
                 <button
                   key={r} onClick={() => setRoleFilter(r)}
                   style={{
-                    padding: '5px 14px', borderRadius: 20, border: 'none',
+                    padding: '5px 14px', borderRadius: 20,
+                    border: active ? 'none' : '1px solid #e2e8f0',
                     fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                    background: active ? (cfg?.color ?? '#1e293b') : 'transparent',
+                    background: active ? (cfg?.color ?? '#1e293b') : '#fff',
                     color: active ? '#fff' : '#64748b',
                     transition: 'all 0.15s',
                   }}
@@ -503,7 +587,7 @@ export default function AdminUsersPage() {
                   {r === 'ALL' ? 'All' : cfg.label}
                   <span style={{
                     marginLeft: 5, fontSize: 11,
-                    background: active ? 'rgba(255,255,255,0.25)' : '#e2e8f0',
+                    background: active ? 'rgba(255,255,255,0.25)' : '#f1f5f9',
                     color: active ? '#fff' : '#64748b',
                     padding: '0 5px', borderRadius: 10,
                   }}>
@@ -514,28 +598,37 @@ export default function AdminUsersPage() {
             })}
           </div>
 
-          {(search || roleFilter !== 'ALL') && (
-            <span style={{ fontSize: 12, color: '#94a3b8', marginLeft: 'auto', flexShrink: 0 }}>
-              {displayed.length} result{displayed.length !== 1 ? 's' : ''}
-            </span>
-          )}
+          {/* Result count */}
+          <span style={{ fontSize: 12, color: '#94a3b8', marginLeft: 'auto', flexShrink: 0 }}>
+            {(search || roleFilter !== 'ALL')
+              ? `${displayed.length} of ${counts.total} user${counts.total !== 1 ? 's' : ''}`
+              : `${counts.total} user${counts.total !== 1 ? 's' : ''} total`
+            }
+          </span>
         </div>
 
         {/* Table */}
         {displayed.length === 0 ? (
-          <div style={{ padding: '52px 24px', textAlign: 'center' }}>
-            <Users size={44} color="#cbd5e1" style={{ marginBottom: 12 }} />
-            <div style={{ fontWeight: 600, color: '#374151', fontSize: 15 }}>No users found</div>
-            <div style={{ color: '#94a3b8', fontSize: 13, marginTop: 4 }}>
+          <div style={{ padding: '60px 24px', textAlign: 'center' }}>
+            <div style={{
+              width: 64, height: 64, borderRadius: '50%',
+              background: '#f1f5f9', margin: '0 auto 16px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Users size={28} color="#cbd5e1" />
+            </div>
+            <div style={{ fontWeight: 700, color: '#374151', fontSize: 15 }}>No users found</div>
+            <div style={{ color: '#94a3b8', fontSize: 13, marginTop: 5 }}>
               {search || roleFilter !== 'ALL' ? 'Try adjusting your search or filters.' : 'No users yet — add the first one.'}
             </div>
             {!search && roleFilter === 'ALL' && (
               <button
                 onClick={() => setAddModal(true)}
                 style={{
-                  marginTop: 16, display: 'inline-flex', alignItems: 'center', gap: 6,
-                  padding: '8px 20px', borderRadius: 8, border: 'none',
-                  background: '#2563eb', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                  marginTop: 18, display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '9px 22px', borderRadius: 9, border: 'none',
+                  background: '#2563eb', color: '#fff', fontSize: 13, fontWeight: 700,
+                  cursor: 'pointer', boxShadow: '0 2px 8px rgba(37,99,235,0.35)',
                 }}
               >
                 <UserPlus size={14} /> Add First User
@@ -546,7 +639,7 @@ export default function AdminUsersPage() {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
                   <th style={th}>#</th>
                   <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('name')}>
                     <span style={{ display: 'inline-flex', alignItems: 'center' }}>User <SortIcon col="name" /></span>
@@ -575,27 +668,55 @@ export default function AdminUsersPage() {
                       onMouseLeave={e => { e.currentTarget.style.background = '' }}
                     >
                       {/* # */}
-                      <td style={{ ...td, color: '#cbd5e1', fontWeight: 600, width: 48 }}>{idx + 1}</td>
+                      <td style={{ ...td, color: '#d1d5db', fontWeight: 600, width: 44, fontSize: 12 }}>{idx + 1}</td>
 
                       {/* User */}
                       <td style={td}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <div style={{
-                            width: 38, height: 38, borderRadius: '50%',
-                            background: avBg, color: avColor,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontWeight: 700, fontSize: 13, flexShrink: 0,
-                            border: `2px solid ${avColor}22`,
-                          }}>
-                            {initials(u.name)}
-                          </div>
+                          {u.avatarUrl ? (
+                            <div style={{ position: 'relative', flexShrink: 0 }}>
+                              <img
+                                src={u.avatarUrl}
+                                alt={u.name}
+                                style={{
+                                  width: 38, height: 38, borderRadius: '50%',
+                                  objectFit: 'cover', border: `2px solid ${avColor}33`,
+                                  display: 'block',
+                                }}
+                              />
+                              <span style={{
+                                position: 'absolute', bottom: -1, right: -1,
+                                width: 14, height: 14, borderRadius: '50%',
+                                background: '#fff', border: '1px solid #e2e8f0',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              }}>
+                                <svg width="9" height="9" viewBox="0 0 18 18" fill="none">
+                                  <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908C16.658 14.082 17.64 11.775 17.64 9.2z" fill="#4285F4"/>
+                                  <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+                                  <path d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z" fill="#FBBC05"/>
+                                  <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.961L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+                                </svg>
+                              </span>
+                            </div>
+                          ) : (
+                            <div style={{
+                              width: 38, height: 38, borderRadius: '50%',
+                              background: avBg, color: avColor,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontWeight: 700, fontSize: 13, flexShrink: 0,
+                              border: `2px solid ${avColor}22`,
+                            }}>
+                              {initials(u.name)}
+                            </div>
+                          )}
                           <div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                               <span style={{ fontWeight: 600, color: '#1e293b' }}>{u.name}</span>
                               {isSelf && (
                                 <span style={{
-                                  fontSize: 10, fontWeight: 700, padding: '1px 6px',
-                                  borderRadius: 20, background: '#dbeafe', color: '#2563eb', letterSpacing: '0.05em',
+                                  fontSize: 9, fontWeight: 800, padding: '2px 6px',
+                                  borderRadius: 20, background: '#dbeafe', color: '#2563eb',
+                                  letterSpacing: '0.07em', textTransform: 'uppercase',
                                 }}>YOU</span>
                               )}
                             </div>
@@ -604,33 +725,112 @@ export default function AdminUsersPage() {
                         </div>
                       </td>
 
-                      {/* Role */}
+                      {/* Role — inline dropdown for non-self rows */}
                       <td style={td}>
-                        <span style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 5,
-                          padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
-                          background: rc.bg, color: rc.color, border: `1px solid ${rc.border}`,
-                        }}>
-                          <rc.icon size={11} />
-                          {rc.label}
-                        </span>
+                        {isSelf ? (
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 5,
+                            padding: '4px 11px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                            background: rc.bg, color: rc.color, border: `1px solid ${rc.border}`,
+                          }}>
+                            <rc.icon size={11} />
+                            {rc.label}
+                          </span>
+                        ) : (
+                          <div
+                            style={{ position: 'relative', display: 'inline-block' }}
+                            onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setRoleDropdown(null) }}
+                            tabIndex={-1}
+                          >
+                            <button
+                              onClick={() => setRoleDropdown(prev => prev === u.id ? null : u.id)}
+                              title="Change role"
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 5,
+                                padding: '4px 11px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                                background: rc.bg, color: rc.color, border: `1px solid ${rc.border}`,
+                                cursor: 'pointer', transition: 'opacity 0.12s',
+                              }}
+                            >
+                              <rc.icon size={11} />
+                              {rc.label}
+                              <ChevronDown size={10} style={{ marginLeft: 2, opacity: 0.6 }} />
+                            </button>
+                            {roleDropdown === u.id && (
+                              <div style={{
+                                position: 'absolute', top: '110%', left: 0, zIndex: 50,
+                                background: '#fff', border: '1.5px solid #e2e8f0',
+                                borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                                minWidth: 130, overflow: 'hidden',
+                              }}>
+                                {ROLES.filter(r => r !== u.role).map(r => {
+                                  const cfg = ROLE_CFG[r]
+                                  return (
+                                    <button
+                                      key={r}
+                                      onClick={() => handleQuickRoleChange(u.id, r)}
+                                      style={{
+                                        display: 'flex', alignItems: 'center', gap: 8,
+                                        width: '100%', padding: '9px 13px', border: 'none',
+                                        background: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                                        color: cfg.color, textAlign: 'left',
+                                      }}
+                                      onMouseEnter={e => { e.currentTarget.style.background = cfg.bg }}
+                                      onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+                                    >
+                                      <cfg.icon size={13} />
+                                      {cfg.label}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </td>
 
                       {/* Provider */}
                       <td style={{ ...td, fontSize: 12 }}>
-                        {u.provider ? (
+                        {u.provider === 'google' ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                            <span style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 5,
+                              background: '#fff', border: '1px solid #e2e8f0',
+                              borderRadius: 6, padding: '3px 9px', fontSize: 11, fontWeight: 600,
+                              color: '#374151', width: 'fit-content',
+                            }}>
+                              <svg width="13" height="13" viewBox="0 0 18 18" fill="none">
+                                <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+                                <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+                                <path d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z" fill="#FBBC05"/>
+                                <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.961L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+                              </svg>
+                              Google
+                            </span>
+                            <span style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 4,
+                              fontSize: 10, fontWeight: 600, color: '#16a34a',
+                            }}>
+                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+                              Linked
+                            </span>
+                          </div>
+                        ) : (
                           <span style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 5,
                             background: '#f8fafc', border: '1px solid #e2e8f0',
-                            borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 500, color: '#64748b',
-                            textTransform: 'capitalize',
+                            borderRadius: 6, padding: '3px 9px', fontSize: 11, fontWeight: 500, color: '#64748b',
                           }}>
-                            {u.provider}
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                            </svg>
+                            Local
                           </span>
-                        ) : <span style={{ color: '#cbd5e1' }}>—</span>}
+                        )}
                       </td>
 
                       {/* Joined */}
-                      <td style={{ ...td, color: '#64748b', whiteSpace: 'nowrap' }}>
+                      <td style={{ ...td, color: '#64748b', whiteSpace: 'nowrap', fontSize: 12 }}>
                         {u.createdAt
                           ? new Date(u.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                           : <span style={{ color: '#cbd5e1' }}>—</span>}
@@ -639,40 +839,40 @@ export default function AdminUsersPage() {
                       {/* Actions */}
                       <td style={{ ...td, textAlign: 'center' }}>
                         <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
-                          {/* Edit */}
                           <button
                             onClick={() => setEditUser(u)}
                             title="Edit user"
                             style={{
                               display: 'inline-flex', alignItems: 'center', gap: 5,
-                              padding: '6px 12px', borderRadius: 7, border: '1.5px solid #e2e8f0',
-                              background: '#fff', color: '#2563eb', fontSize: 12, fontWeight: 600,
+                              padding: '6px 13px', borderRadius: 7, border: '1.5px solid #dbeafe',
+                              background: '#f0f7ff', color: '#2563eb', fontSize: 12, fontWeight: 600,
                               cursor: 'pointer', transition: 'all 0.12s',
                             }}
                             onMouseEnter={e => { e.currentTarget.style.background = '#dbeafe'; e.currentTarget.style.borderColor = '#93c5fd' }}
-                            onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#e2e8f0' }}
+                            onMouseLeave={e => { e.currentTarget.style.background = '#f0f7ff'; e.currentTarget.style.borderColor = '#dbeafe' }}
                           >
-                            <Pencil size={13} /> Edit
+                            <Pencil size={12} /> Edit
                           </button>
 
-                          {/* Delete — disabled for self */}
                           <button
                             onClick={() => !isSelf && setDeleteUser(u)}
                             disabled={isSelf}
                             title={isSelf ? 'Cannot delete your own account' : 'Delete user'}
                             style={{
                               display: 'inline-flex', alignItems: 'center', gap: 5,
-                              padding: '6px 12px', borderRadius: 7, border: '1.5px solid #e2e8f0',
-                              background: '#fff', color: isSelf ? '#cbd5e1' : '#dc2626',
+                              padding: '6px 13px', borderRadius: 7,
+                              border: `1.5px solid ${isSelf ? '#f1f5f9' : '#fee2e2'}`,
+                              background: isSelf ? '#fafafa' : '#fff8f8',
+                              color: isSelf ? '#cbd5e1' : '#dc2626',
                               fontSize: 12, fontWeight: 600,
                               cursor: isSelf ? 'not-allowed' : 'pointer',
                               opacity: isSelf ? 0.5 : 1,
                               transition: 'all 0.12s',
                             }}
                             onMouseEnter={e => { if (!isSelf) { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.borderColor = '#fca5a5' } }}
-                            onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#e2e8f0' }}
+                            onMouseLeave={e => { if (!isSelf) { e.currentTarget.style.background = '#fff8f8'; e.currentTarget.style.borderColor = '#fee2e2' } }}
                           >
-                            <Trash2 size={13} /> Delete
+                            <Trash2 size={12} /> Delete
                           </button>
                         </div>
                       </td>
@@ -687,11 +887,11 @@ export default function AdminUsersPage() {
         {/* Footer */}
         {displayed.length > 0 && (
           <div style={{
-            padding: '10px 20px', borderTop: '1px solid #f1f5f9', background: '#fafafa',
+            padding: '11px 20px', borderTop: '1px solid #f1f5f9', background: '#fafafa',
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           }}>
             <span style={{ fontSize: 12, color: '#94a3b8' }}>
-              Showing {displayed.length} of {counts.total} user{counts.total !== 1 ? 's' : ''}
+              Showing <strong style={{ color: '#374151' }}>{displayed.length}</strong> of <strong style={{ color: '#374151' }}>{counts.total}</strong> user{counts.total !== 1 ? 's' : ''}
             </span>
             <span style={{ fontSize: 11, color: '#cbd5e1' }}>
               Changes take effect immediately
@@ -705,6 +905,7 @@ export default function AdminUsersPage() {
         <UserFormModal
           initial={null}
           saving={saving}
+          isSelf={false}
           onClose={() => setAddModal(false)}
           onSave={handleAddUser}
         />
@@ -714,6 +915,7 @@ export default function AdminUsersPage() {
         <UserFormModal
           initial={editUser}
           saving={saving}
+          isSelf={editUser.id === user.id}
           onClose={() => setEditUser(null)}
           onSave={handleEditUser}
         />
@@ -732,17 +934,17 @@ export default function AdminUsersPage() {
 }
 
 const th = {
-  padding: '12px 16px',
+  padding: '13px 16px',
   textAlign: 'left',
   fontWeight: 700,
   fontSize: 11,
   color: '#64748b',
   textTransform: 'uppercase',
-  letterSpacing: '0.06em',
+  letterSpacing: '0.07em',
   whiteSpace: 'nowrap',
 }
 
 const td = {
-  padding: '12px 16px',
+  padding: '13px 16px',
   verticalAlign: 'middle',
 }
