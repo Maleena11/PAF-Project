@@ -25,6 +25,7 @@ export default function Navbar() {
     : '?'
 
   const isAdmin = user?.role === 'ADMIN'
+  const isStaff = user?.role === 'STAFF'
 
   const links = [
     { to: '/dashboard',      icon: LayoutDashboard, label: 'Dashboard' },
@@ -83,6 +84,16 @@ export default function Navbar() {
             ))}
           </>
         )}
+
+        {isStaff && (
+          <div style={{
+            fontSize: 10, fontWeight: 700, color: '#94a3b8',
+            textTransform: 'uppercase', letterSpacing: '0.08em',
+            padding: '12px 16px 4px',
+          }}>
+            Staff
+          </div>
+        )}
       </nav>
 
       <div className="sidebar-footer">
@@ -94,7 +105,11 @@ export default function Navbar() {
           </div>
           <div className="sidebar-user-info">
             <div className="sidebar-user-name">{user?.name || 'Guest'}</div>
-            <div className="sidebar-user-role">{user?.role || ''}</div>
+            <div className="sidebar-user-role" style={{
+              color: isAdmin ? '#93c5fd' : isStaff ? '#6ee7b7' : '#94a3b8',
+            }}>
+              {user?.role || ''}
+            </div>
           </div>
           <button
             onClick={logout}
