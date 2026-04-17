@@ -64,6 +64,75 @@ public class UserController {
         return ResponseEntity.ok(userRepository.findAll());
     }
 
+    @PostMapping("/users")
+    public ResponseEntity<?> createUser(@RequestBody Map<String, String> body) {
+        String name    = body.get("name");
+        String email   = body.get("email");
+        String roleStr = body.getOrDefault("role", "STUDENT");
+
+        if (name == null || name.isBlank())
+            return ResponseEntity.badRequest().body(Map.of("message", "Name is required"));
+        if (email == null || email.isBlank())
+            return ResponseEntity.badRequest().body(Map.of("message", "Email is required"));
+
+        String normalEmail = email.trim().toLowerCase();
+        if (userRepository.existsByEmail(normalEmail))
+            return ResponseEntity.badRequest().body(Map.of("message", "Email already in use"));
+
+        User.Role role;
+        try { role = User.Role.valueOf(roleStr.toUpperCase()); }
+        catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Invalid role: " + roleStr));
+        }
+
+        User user = User.builder()
+            .name(name.trim())
+            .email(normalEmail)
+            .role(role)
+            .provider("local")
+            .providerId("admin-" + System.currentTimeMillis())
+            .build();
+
+        return ResponseEntity.status(201).body(userRepository.save(user));
+    }
+
+    @PutMapping("/users/{id}")
+    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        return userRepository.findById(id)
+            .map(user -> {
+                String name    = body.get("name");
+                String email   = body.get("email");
+                String roleStr = body.get("role");
+
+                if (name != null && !name.isBlank()) user.setName(name.trim());
+
+                if (email != null && !email.isBlank()) {
+                    String normalEmail = email.trim().toLowerCase();
+                    if (!normalEmail.equals(user.getEmail()) && userRepository.existsByEmail(normalEmail))
+                        return ResponseEntity.badRequest().<Object>body(Map.of("message", "Email already in use"));
+                    user.setEmail(normalEmail);
+                }
+
+                if (roleStr != null && !roleStr.isBlank()) {
+                    try { user.setRole(User.Role.valueOf(roleStr.toUpperCase())); }
+                    catch (IllegalArgumentException e) {
+                        return ResponseEntity.badRequest().<Object>body(Map.of("message", "Invalid role: " + roleStr));
+                    }
+                }
+
+                return ResponseEntity.ok((Object) userRepository.save(user));
+            })
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/users/{id}")
+    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
+        if (!userRepository.existsById(id))
+            return ResponseEntity.notFound().build();
+        userRepository.deleteById(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @PatchMapping("/users/{id}/role")
     public ResponseEntity<?> updateUserRole(@PathVariable Long id, @RequestBody Map<String, String> body) {
         String roleStr = body.get("role");
