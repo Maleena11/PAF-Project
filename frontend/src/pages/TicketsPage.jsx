@@ -9,6 +9,7 @@ import { format, formatDistanceToNow } from 'date-fns'
 import { useAuth } from '../context/AuthContext'
 import ticketService from '../services/ticketService'
 import TicketForm from '../components/TicketForm'
+import { BACKEND_URL } from '../services/api'
 
 const PRIORITY_CLASS  = { LOW: 'badge-green', MEDIUM: 'badge-blue', HIGH: 'badge-yellow', CRITICAL: 'badge-red' }
 const STATUS_CLASS    = { OPEN: 'badge-yellow', IN_PROGRESS: 'badge-blue', RESOLVED: 'badge-green', CLOSED: 'badge-gray', REJECTED: 'badge-red' }
@@ -417,10 +418,10 @@ export default function TicketsPage() {
                   <div>
                     <p style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Attachment</p>
                     <div
-                      onClick={() => window.open(selected.imageUrl, '_blank')}
+                      onClick={() => window.open(BACKEND_URL + selected.imageUrl, '_blank')}
                       style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', cursor: 'zoom-in', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
                     >
-                      <img src={selected.imageUrl} alt="attachment" style={{ width: '100%', display: 'block', maxHeight: 280, objectFit: 'cover' }} />
+                      <img src={BACKEND_URL + selected.imageUrl} alt="attachment" style={{ width: '100%', display: 'block', maxHeight: 280, objectFit: 'cover' }} />
                       <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0)', transition: 'background .2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                         onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.25)'; e.currentTarget.children[0].style.opacity = 1 }}
                         onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0)';  e.currentTarget.children[0].style.opacity = 0 }}
@@ -588,7 +589,7 @@ function ResourceStyleCard({ ticket: t, onClick }) {
       <div style={{ background: theme.bg, height: 130, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {/* Background image if exists */}
         {t.imageUrl && (
-          <img src={t.imageUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.25 }} />
+          <img src={BACKEND_URL + t.imageUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.25 }} />
         )}
         {/* Center icon */}
         <div style={{ width: 64, height: 64, borderRadius: 18, background: theme.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 8px 20px ${theme.iconBg}66`, position: 'relative', zIndex: 1 }}>
@@ -720,7 +721,7 @@ function KanbanCard({ ticket: t, col, onClick }) {
       {/* Image thumbnail */}
       {t.imageUrl && (
         <div style={{ width: '100%', height: 110, borderRadius: 8, overflow: 'hidden', marginBottom: 10 }}>
-          <img src={t.imageUrl} alt="attachment" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img src={BACKEND_URL + t.imageUrl} alt="attachment" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </div>
       )}
 
@@ -829,7 +830,7 @@ function TicketCard({ ticket: t, onClick }) {
       {/* ── Image ── */}
       {t.imageUrl ? (
         <div style={{ width: '100%', height: 180, overflow: 'hidden', position: 'relative' }}>
-          <img src={t.imageUrl} alt="attachment" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img src={BACKEND_URL + t.imageUrl} alt="attachment" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.45))', padding: '20px 12px 8px' }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.1em' }}>📷 PHOTO</span>
           </div>
