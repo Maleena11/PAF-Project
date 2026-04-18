@@ -4,8 +4,10 @@ package com.smartcampus.controller;
 
 import com.smartcampus.model.User;
 import com.smartcampus.repository.UserRepository;
+import com.smartcampus.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 import java.util.Optional;
@@ -13,12 +15,17 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173")
 public class UserController {
 
     private final UserRepository userRepository;
+    private final JwtUtil jwtUtil;
 
-    // Simple login: match by email (no password needed for student project)
+    private String currentUserEmail() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        return (auth != null) ? auth.getName() : null;
+    }
+
+    // Simple login: match by email, returns JWT token
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
         String email = body.get("email");
@@ -31,10 +38,19 @@ public class UserController {
             return ResponseEntity.status(401).body(Map.of("message", "No account found with that email"));
         }
 
-        return ResponseEntity.ok(userOpt.get());
+        User user = userOpt.get();
+        String token = jwtUtil.generateToken(user);
+        return ResponseEntity.ok(Map.of(
+            "token",     token,
+            "id",        user.getId(),
+            "name",      user.getName(),
+            "email",     user.getEmail(),
+            "role",      user.getRole().name(),
+            "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : ""
+        ));
     }
 
-    // Login with email + name (auto-register if not found)
+    // Login with email + name (auto-register if not found), returns JWT token
     @PostMapping("/login-or-register")
     public ResponseEntity<?> loginOrRegister(@RequestBody Map<String, String> body) {
         String email = body.get("email");
@@ -56,7 +72,15 @@ public class UserController {
                 return userRepository.save(newUser);
             });
 
-        return ResponseEntity.ok(user);
+        String token = jwtUtil.generateToken(user);
+        return ResponseEntity.ok(Map.of(
+            "token",     token,
+            "id",        user.getId(),
+            "name",      user.getName(),
+            "email",     user.getEmail(),
+            "role",      user.getRole().name(),
+            "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : ""
+        ));
     }
 
     @GetMapping("/users")
@@ -129,6 +153,14 @@ public class UserController {
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         if (!userRepository.existsById(id))
             return ResponseEntity.notFound().build();
+
+        String email = currentUserEmail();
+        if (email != null) {
+            Optional<User> self = userRepository.findByEmail(email);
+            if (self.isPresent() && self.get().getId().equals(id))
+                return ResponseEntity.badRequest().body(Map.of("message", "You cannot delete your own account"));
+        }
+
         userRepository.deleteById(id);
         return ResponseEntity.noContent().build();
     }
@@ -145,6 +177,14 @@ public class UserController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("message", "Invalid role: " + roleStr));
         }
+
+        String email = currentUserEmail();
+        if (email != null) {
+            Optional<User> self = userRepository.findByEmail(email);
+            if (self.isPresent() && self.get().getId().equals(id))
+                return ResponseEntity.badRequest().body(Map.of("message", "You cannot change your own role"));
+        }
+
         return userRepository.findById(id)
             .map(user -> {
                 user.setRole(newRole);

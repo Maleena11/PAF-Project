@@ -141,16 +141,34 @@ public class TicketService {
         ticket.getComments().add(comment);
         ticketRepository.save(ticket);
 
-        // Notify the ticket owner when someone else comments
+        String preview = content.length() > 60 ? content.substring(0, 60) + "..." : content;
+
         if (!user.getId().equals(ticket.getUser().getId())) {
-            String preview = content.length() > 60 ? content.substring(0, 60) + "..." : content;
+            // Someone else commented → notify the ticket owner
             notificationService.createNotification(
                     ticket.getUser(),
                     "New Comment on Ticket #" + ticketId,
                     user.getName() + " commented: \"" + preview + "\"",
                     NotificationType.TICKET,
-                    ticketId
-            );
+                    ticketId);
+        } else {
+            // Ticket owner replied → notify the assignee, or all admins if unassigned
+            if (ticket.getAssignedTo() != null) {
+                notificationService.createNotification(
+                        ticket.getAssignedTo(),
+                        "Reply on Ticket #" + ticketId,
+                        user.getName() + " replied: \"" + preview + "\"",
+                        NotificationType.TICKET,
+                        ticketId);
+            } else {
+                userRepository.findByRole(User.Role.ADMIN).forEach(admin ->
+                        notificationService.createNotification(
+                                admin,
+                                "Reply on Ticket #" + ticketId,
+                                user.getName() + " replied: \"" + preview + "\"",
+                                NotificationType.TICKET,
+                                ticketId));
+            }
         }
 
         return comment;

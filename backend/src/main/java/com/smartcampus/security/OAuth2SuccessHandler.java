@@ -48,9 +48,18 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                     return userRepository.save(newUser);
                 });
 
-        // Update avatar in case it changed
+        // Sync Google profile data — link provider if this was a local account
+        boolean dirty = false;
+        if (!"google".equals(user.getProvider())) {
+            user.setProvider("google");
+            user.setProviderId(googleId);
+            dirty = true;
+        }
         if (avatarUrl != null && !avatarUrl.equals(user.getAvatarUrl())) {
             user.setAvatarUrl(avatarUrl);
+            dirty = true;
+        }
+        if (dirty) {
             userRepository.save(user);
         }
 
