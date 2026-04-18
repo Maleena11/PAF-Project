@@ -23,4 +23,8 @@ public class TicketRequestDTO {
 
     @NotNull(message = "User ID is required")
     private Long userId;
+
+    private String location;
+
+    private String contactDetails;
 }
