@@ -31,6 +31,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/login", "/api/auth/login-or-register").permitAll()
                 // Public: OAuth2 flow
                 .requestMatchers("/oauth2/**", "/login/oauth2/**", "/error").permitAll()
+                // Public: uploaded files
+                .requestMatchers("/uploads/**").permitAll()
                 // Admin-only: user management
                 .requestMatchers("/api/auth/users", "/api/auth/users/**").hasRole("ADMIN")
                 // Admin-only: delete resources
