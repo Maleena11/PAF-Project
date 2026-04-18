@@ -1,30 +1,19 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { NavLink } from 'react-router-dom'
 import { LayoutDashboard, Building2, CalendarCheck, Ticket, Bell, LogOut, Users } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
-import api from '../services/api'
+import { useNotifications } from '../context/NotificationContext'
 
 export default function Navbar() {
   const { user, logout } = useAuth()
-  const [unreadCount, setUnreadCount] = useState(0)
-
-  useEffect(() => {
-    if (!user?.id) return
-    const fetchCount = () => {
-      api.get(`/notifications/user/${user.id}/count`)
-        .then(r => setUnreadCount(r.data.count))
-        .catch(() => {})
-    }
-    fetchCount()
-    const interval = setInterval(fetchCount, 30000)
-    return () => clearInterval(interval)
-  }, [user?.id])
+  const { unreadCount } = useNotifications()
 
   const initials = user?.name
     ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
     : '?'
 
   const isAdmin = user?.role === 'ADMIN'
+  const isStaff = user?.role === 'STAFF'
 
   const links = [
     { to: '/dashboard',      icon: LayoutDashboard, label: 'Dashboard' },
@@ -83,6 +72,16 @@ export default function Navbar() {
             ))}
           </>
         )}
+
+        {isStaff && (
+          <div style={{
+            fontSize: 10, fontWeight: 700, color: '#94a3b8',
+            textTransform: 'uppercase', letterSpacing: '0.08em',
+            padding: '12px 16px 4px',
+          }}>
+            Staff
+          </div>
+        )}
       </nav>
 
       <div className="sidebar-footer">
@@ -94,7 +93,11 @@ export default function Navbar() {
           </div>
           <div className="sidebar-user-info">
             <div className="sidebar-user-name">{user?.name || 'Guest'}</div>
-            <div className="sidebar-user-role">{user?.role || ''}</div>
+            <div className="sidebar-user-role" style={{
+              color: isAdmin ? '#93c5fd' : isStaff ? '#6ee7b7' : '#94a3b8',
+            }}>
+              {user?.role || ''}
+            </div>
           </div>
           <button
             onClick={logout}
