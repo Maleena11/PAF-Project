@@ -280,19 +280,19 @@ export default function Dashboard() {
       ) : isStaff ? (
         /* ── Staff Hero Banner ── */
         <div style={{
-          background: 'linear-gradient(135deg, #064e3b 0%, #065f46 50%, #059669 100%)',
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #1d4ed8 100%)',
           borderRadius: 16,
           padding: '28px 32px',
           marginBottom: 24,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          boxShadow: '0 4px 28px rgba(6,78,59,0.45)',
+          boxShadow: '0 4px 28px rgba(15,23,42,0.45)',
           position: 'relative',
           overflow: 'hidden',
         }}>
           <div style={{ position: 'absolute', right: -60, top: -60, width: 220, height: 220, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', left: -30, top: '50%', transform: 'translateY(-50%)', width: 120, height: 120, borderRadius: '50%', background: 'rgba(5,150,105,0.15)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', left: -30, top: '50%', transform: 'translateY(-50%)', width: 120, height: 120, borderRadius: '50%', background: 'rgba(37,99,235,0.12)', pointerEvents: 'none' }} />
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
             <div style={{
@@ -302,7 +302,7 @@ export default function Dashboard() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
             }}>
-              <Users size={28} color="#6ee7b7" />
+              <Users size={28} color="#93c5fd" />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 5 }}>
@@ -310,9 +310,9 @@ export default function Dashboard() {
                   Staff Portal
                 </h1>
                 <span style={{
-                  background: 'rgba(110,231,183,0.2)',
-                  border: '1px solid rgba(110,231,183,0.4)',
-                  color: '#6ee7b7',
+                  background: 'rgba(96,165,250,0.2)',
+                  border: '1px solid rgba(96,165,250,0.4)',
+                  color: '#93c5fd',
                   fontSize: 10, fontWeight: 700,
                   padding: '2px 9px', borderRadius: 20,
                   letterSpacing: '0.08em', textTransform: 'uppercase',
@@ -321,7 +321,7 @@ export default function Dashboard() {
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-                <p style={{ margin: 0, fontSize: 13, color: '#a7f3d0' }}>
+                <p style={{ margin: 0, fontSize: 13, color: '#bfdbfe' }}>
                   Welcome back, {user?.name?.split(' ')[0]} — manage campus resources & bookings
                 </p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -337,7 +337,7 @@ export default function Dashboard() {
               background: 'rgba(255,255,255,0.1)',
               border: '1px solid rgba(255,255,255,0.15)',
               borderRadius: 10, padding: '8px 16px',
-              color: '#d1fae5', fontSize: 13, fontWeight: 600,
+              color: '#bfdbfe', fontSize: 13, fontWeight: 600,
               backdropFilter: 'blur(4px)',
             }}>
               {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
@@ -345,13 +345,13 @@ export default function Dashboard() {
             <div style={{ display: 'flex', gap: 6 }}>
               <div style={{
                 background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 8, padding: '4px 10px', fontSize: 11, color: '#a7f3d0', fontWeight: 500,
+                borderRadius: 8, padding: '4px 10px', fontSize: 11, color: '#bfdbfe', fontWeight: 500,
               }}>
                 {pendingBookings} pending
               </div>
               <div style={{
                 background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 8, padding: '4px 10px', fontSize: 11, color: '#a7f3d0', fontWeight: 500,
+                borderRadius: 8, padding: '4px 10px', fontSize: 11, color: '#bfdbfe', fontWeight: 500,
               }}>
                 {openTickets} tickets
               </div>
@@ -361,14 +361,14 @@ export default function Dashboard() {
       ) : (
         /* ── User Hero Banner ── */
         <div style={{
-          background: 'linear-gradient(135deg, #1e3a5f 0%, #2563eb 60%, #3b82f6 100%)',
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #1d4ed8 100%)',
           borderRadius: 16,
           padding: '28px 32px',
           marginBottom: 24,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          boxShadow: '0 4px 20px rgba(37,99,235,0.25)',
+          boxShadow: '0 4px 28px rgba(15,23,42,0.45)',
           position: 'relative',
           overflow: 'hidden',
         }}>

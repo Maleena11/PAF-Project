@@ -5,10 +5,16 @@
 -- Users
 INSERT IGNORE INTO users (id, name, email, role, provider, provider_id, created_at)
 VALUES
-  (1, 'Admin User',    'admin@campus.edu',   'ADMIN',   'local',  'local-1', CURRENT_TIMESTAMP),
-  (2, 'Alice Johnson', 'alice@campus.edu',   'STUDENT', 'google', 'g-001',   CURRENT_TIMESTAMP),
-  (3, 'Bob Smith',     'bob@campus.edu',     'STAFF',   'google', 'g-002',   CURRENT_TIMESTAMP),
-  (4, 'Carol White',   'carol@campus.edu',   'STUDENT', 'google', 'g-003',   CURRENT_TIMESTAMP);
+  (1, 'Admin User',    'it23616592@my.sliit.lk', 'ADMIN',   'local',  'local-1', CURRENT_TIMESTAMP),
+  (2, 'Alice Johnson', 'it23657014@my.sliit.lk', 'STUDENT', 'local',  'local-2', CURRENT_TIMESTAMP),
+  (3, 'Bob Smith',     'it23642164@my.sliit.lk', 'STAFF',   'local',  'local-3', CURRENT_TIMESTAMP),
+  (4, 'Carol White',   'it23665866@my.sliit.lk', 'STUDENT', 'local',  'local-4', CURRENT_TIMESTAMP);
+
+-- Update emails if old seed data already exists
+UPDATE users SET email = 'it23616592@my.sliit.lk' WHERE id = 1 AND email = 'admin@campus.edu';
+UPDATE users SET email = 'it23657014@my.sliit.lk' WHERE id = 2 AND email = 'alice@campus.edu';
+UPDATE users SET email = 'it23642164@my.sliit.lk' WHERE id = 3 AND email = 'bob@campus.edu';
+UPDATE users SET email = 'it23665866@my.sliit.lk' WHERE id = 4 AND email = 'carol@campus.edu';
 
 -- Resources
 INSERT IGNORE INTO resources (id, name, type, location, capacity, status, description, created_at)
