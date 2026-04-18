@@ -52,6 +52,12 @@ public class Ticket {
     @Column(name = "image_url")
     private String imageUrl;
 
+    @Column(name = "image_url2")
+    private String imageUrl2;
+
+    @Column(name = "image_url3")
+    private String imageUrl3;
+
     @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Comment> comments = new ArrayList<>();

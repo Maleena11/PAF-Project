@@ -72,9 +72,17 @@ public class TicketController {
     @PostMapping("/{id}/image")
     public ResponseEntity<Ticket> uploadImage(
             @PathVariable Long id,
-            @RequestParam("file") MultipartFile file) throws IOException {
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "slot", defaultValue = "1") int slot) throws IOException {
         String fileName = fileUploadUtil.saveFile("tickets", file);
-        return ResponseEntity.ok(ticketService.setImageUrl(id, "/uploads/tickets/" + fileName));
+        return ResponseEntity.ok(ticketService.setImageUrl(id, "/uploads/tickets/" + fileName, slot));
+    }
+
+    @DeleteMapping("/{id}/image")
+    public ResponseEntity<Ticket> removeImage(
+            @PathVariable Long id,
+            @RequestParam(value = "slot", defaultValue = "1") int slot) {
+        return ResponseEntity.ok(ticketService.removeImageUrl(id, slot));
     }
 
     @PostMapping("/{id}/comments")
