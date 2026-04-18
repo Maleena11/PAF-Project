@@ -5,6 +5,7 @@ const ticketService = {
   getById: (id) => api.get(`/tickets/${id}`),
   getByUser: (userId) => api.get(`/tickets/user/${userId}`),
   create: (data) => api.post('/tickets', data),
+  update: (id, data) => api.put(`/tickets/${id}`, data),
   updateStatus: (id, status) => api.patch(`/tickets/${id}/status`, null, { params: { status } }),
   assign: (id, assigneeId) => api.patch(`/tickets/${id}/assign`, null, { params: { assigneeId } }),
   uploadImage: (id, file) => {

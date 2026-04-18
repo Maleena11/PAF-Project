@@ -18,7 +18,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/tickets")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = {"http://localhost:5173","http://localhost:5174","http://localhost:5175","http://localhost:3000"})
 public class TicketController {
 
     private final TicketService ticketService;
@@ -46,6 +46,13 @@ public class TicketController {
     @PostMapping
     public ResponseEntity<Ticket> createTicket(@Valid @RequestBody TicketRequestDTO dto) {
         return ResponseEntity.status(201).body(ticketService.createTicket(dto));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Ticket> updateTicket(
+            @PathVariable Long id,
+            @Valid @RequestBody TicketRequestDTO dto) {
+        return ResponseEntity.ok(ticketService.updateTicket(id, dto));
     }
 
     @PatchMapping("/{id}/status")
