@@ -7,7 +7,7 @@ import { BACKEND_URL } from '../services/api'
 
 const resolveImageUrl = (url) => {
   if (!url) return null
-  if (url.startsWith('http')) return url
+  if (url.startsWith('data:') || url.startsWith('http')) return url
   return BACKEND_URL + url
 }
 import ResourceList from '../components/ResourceList'
@@ -119,24 +119,13 @@ export default function ResourcesPage() {
   }, [search, typeFilter, statusFilter, resources])
 
   const handleSubmit = async (data) => {
-    const { _imageFile, ...payload } = data
     try {
-      let resourceId
       if (editing) {
-        await resourceService.update(editing.id, payload)
-        resourceId = editing.id
+        await resourceService.update(editing.id, data)
         toast.success('Resource updated')
       } else {
-        const res = await resourceService.create(payload)
-        resourceId = res.data.id
+        await resourceService.create(data)
         toast.success('Resource created')
-      }
-      if (_imageFile) {
-        try {
-          await resourceService.uploadImage(resourceId, _imageFile)
-        } catch {
-          toast.error('Resource saved but image upload failed')
-        }
       }
       setShowModal(false)
       setEditing(null)
