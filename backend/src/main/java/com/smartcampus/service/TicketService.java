@@ -112,9 +112,19 @@ public class TicketService {
         return updated;
     }
 
-    public Ticket setImageUrl(Long id, String imageUrl) {
+    public Ticket setImageUrl(Long id, String imageUrl, int slot) {
         Ticket ticket = getTicketById(id);
-        ticket.setImageUrl(imageUrl);
+        if (slot == 2) ticket.setImageUrl2(imageUrl);
+        else if (slot == 3) ticket.setImageUrl3(imageUrl);
+        else ticket.setImageUrl(imageUrl);
+        return ticketRepository.save(ticket);
+    }
+
+    public Ticket removeImageUrl(Long id, int slot) {
+        Ticket ticket = getTicketById(id);
+        if (slot == 2) ticket.setImageUrl2(null);
+        else if (slot == 3) ticket.setImageUrl3(null);
+        else ticket.setImageUrl(null);
         return ticketRepository.save(ticket);
     }
 
