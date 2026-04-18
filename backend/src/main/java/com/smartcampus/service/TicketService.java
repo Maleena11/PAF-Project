@@ -47,6 +47,8 @@ public class TicketService {
                 .description(dto.getDescription())
                 .category(dto.getCategory())
                 .priority(dto.getPriority())
+                .location(dto.getLocation())
+                .contactDetails(dto.getContactDetails())
                 .user(user)
                 .status(TicketStatus.OPEN)
                 .build();
@@ -70,6 +72,27 @@ public class TicketService {
         );
 
         return saved;
+    }
+
+    public Ticket updateTicket(Long id, TicketRequestDTO dto) {
+        Ticket ticket = getTicketById(id);
+        ticket.setTitle(dto.getTitle());
+        ticket.setDescription(dto.getDescription());
+        ticket.setCategory(dto.getCategory());
+        ticket.setPriority(dto.getPriority());
+        ticket.setLocation(dto.getLocation());
+        ticket.setContactDetails(dto.getContactDetails());
+        ticket.setStatus(TicketStatus.OPEN);
+
+        Ticket updated = ticketRepository.save(ticket);
+
+        notificationService.createNotification(ticket.getUser(),
+                "Ticket Resent",
+                "Your ticket #" + id + " has been updated and resent.",
+                NotificationType.TICKET,
+                id);
+
+        return updated;
     }
 
     public Ticket updateTicketStatus(Long id, TicketStatus status) {

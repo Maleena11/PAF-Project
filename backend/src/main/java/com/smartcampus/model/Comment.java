@@ -18,6 +18,7 @@ public class Comment {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ticket_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Ticket ticket;
 
     @ManyToOne(fetch = FetchType.EAGER)
