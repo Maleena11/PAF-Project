@@ -5,8 +5,9 @@ import waitlistService from '../services/waitlistService'
 import { useAuth } from '../context/AuthContext'
 import TimeSlotPicker from './TimeSlotPicker'
 
-export default function BookingForm({ onSubmit, onCancel, initialData = null }) {
+export default function BookingForm({ onSubmit, onCancel, initialData = null, bookingId = null }) {
   const { user } = useAuth()
+  const isEditMode = !!bookingId
   const [resources, setResources] = useState([])
   const [availability, setAvailability] = useState(null) // null | true | false
   const [checking, setChecking] = useState(false)
@@ -16,23 +17,38 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null }) 
   // When set, the form is in waitlist mode for this { startTime, endTime }
   const [waitlistSlot, setWaitlistSlot] = useState(null)
 
+  const toDateStr = (isoStr) => isoStr ? new Date(isoStr).toISOString().slice(0, 10) : ''
+  const toDatetimeLocal = (isoStr) => {
+    if (!isoStr) return ''
+    const d = new Date(isoStr)
+    const pad = n => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  }
+
   const [form, setForm] = useState({
-    resourceId:        initialData?.resourceId        ? String(initialData.resourceId) : '',
-    date: '',            // "YYYY-MM-DD" — drives the slot picker
+    resourceId:        initialData?.resource?.id      ? String(initialData.resource.id)
+                     : initialData?.resourceId        ? String(initialData.resourceId) : '',
+    date:              toDateStr(initialData?.startTime),
     title:             initialData?.title             || '',
     purpose:           initialData?.purpose           || '',
     expectedAttendees: initialData?.expectedAttendees ? String(initialData.expectedAttendees) : '',
-    startTime: '',
-    endTime: '',
+    startTime:         toDatetimeLocal(initialData?.startTime),
+    endTime:           toDatetimeLocal(initialData?.endTime),
     notes:             initialData?.notes             || '',
-    recurrenceRule: 'NONE',
-    recurrenceEndDate: '',
+    recurrenceRule:    initialData?.recurrenceRule    || 'NONE',
+    recurrenceEndDate: initialData?.recurrenceEndDate || '',
   })
 
   useEffect(() => {
     resourceService.getAll({ status: 'AVAILABLE' })
       .then(r => setResources(r.data))
   }, [])
+
+  useEffect(() => {
+    if (isEditMode && form.resourceId && resources.length > 0) {
+      setSelectedResource(resources.find(r => r.id === Number(form.resourceId)) || null)
+    }
+  }, [isEditMode, form.resourceId, resources])
 
   // Server-side availability check (only in booking mode)
   useEffect(() => {
@@ -43,7 +59,7 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null }) 
 
     setChecking(true)
     bookingService
-      .checkAvailability(resourceId, new Date(startTime).toISOString(), new Date(endTime).toISOString())
+      .checkAvailability(resourceId, new Date(startTime).toISOString(), new Date(endTime).toISOString(), bookingId)
       .then(r => setAvailability(r.data.available))
       .catch(() => setAvailability(null))
       .finally(() => setChecking(false))
@@ -147,7 +163,7 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null }) 
         throw err
       }
     } else {
-      // ── Normal booking submission ────────────────────────────────────────
+      // ── Normal booking or edit submission ───────────────────────────────
       if (availability === false) return
       onSubmit({
         ...form,
@@ -157,6 +173,7 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null }) 
         recurrenceEndDate: form.recurrenceRule !== 'NONE' && form.recurrenceEndDate
           ? form.recurrenceEndDate
           : undefined,
+        ...(isEditMode ? { _bookingId: bookingId } : {}),
       })
     }
   }
@@ -314,6 +331,27 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null }) 
           {!checking && availability === false && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <span style={{ color: '#dc2626' }}>✗ Slot no longer available — please choose another</span>
+              {/* Join Waitlist button */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                background: '#fffbeb', border: '1px solid #fcd34d',
+                borderRadius: 8, padding: '8px 12px',
+              }}>
+                <span style={{ color: '#92400e', fontSize: 13 }}>
+                  Want this slot? Join the waitlist and get notified if it opens up.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleWaitlistRequest(form.startTime, form.endTime)}
+                  style={{
+                    marginLeft: 'auto', fontSize: 12, fontWeight: 600,
+                    padding: '4px 12px', borderRadius: 6, cursor: 'pointer',
+                    background: '#d97706', color: '#fff', border: 'none', whiteSpace: 'nowrap',
+                  }}
+                >
+                  ⏳ Join Waitlist
+                </button>
+              </div>
               {nextFreeSlot && (
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 10,
@@ -411,7 +449,7 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null }) 
             !!overCapacity
           }
         >
-          {waitlistSlot ? '⏳ Join Waitlist' : 'Submit Booking'}
+          {waitlistSlot ? '⏳ Join Waitlist' : isEditMode ? 'Save Changes' : 'Submit Booking'}
         </button>
       </div>
     </form>

@@ -64,7 +64,8 @@ export default function TimeSlotPicker({
     resetSelection()
     if (!resourceId || !date) { setBookings([]); onBookingsLoaded?.([]) ; return }
     setLoading(true)
-    bookingService.getByResource(resourceId)
+    const dateISO = new Date(`${date}T00:00:00`).toISOString()
+    bookingService.getByResource(resourceId, dateISO)
       .then(r => { setBookings(r.data || []); onBookingsLoaded?.(r.data || []) })
       .catch(() => { setBookings([]); onBookingsLoaded?.([]) })
       .finally(() => setLoading(false))

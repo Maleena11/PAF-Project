@@ -93,7 +93,12 @@ public class WaitlistService {
 
     /** Admin: all entries, optionally filtered by resourceId and/or status string. */
     public List<WaitlistEntry> getAllWaitlist(Long resourceId, String status) {
-        return waitlistRepository.findAllWithFilters(resourceId, status);
+        WaitlistStatus parsedStatus = null;
+        if (status != null && !status.isBlank()) {
+            try { parsedStatus = WaitlistStatus.valueOf(status.toUpperCase()); }
+            catch (IllegalArgumentException ignored) {}
+        }
+        return waitlistRepository.findAllWithFilters(resourceId, parsedStatus);
     }
 
     /** Admin: forcibly remove any waitlist entry regardless of owner. */
