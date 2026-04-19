@@ -43,7 +43,7 @@ public interface WaitlistRepository extends JpaRepository<WaitlistEntry, Long> {
            "ORDER BY w.createdAt DESC")
     List<WaitlistEntry> findAllWithFilters(
             @Param("resourceId") Long resourceId,
-            @Param("status")     String status);
+            @Param("status")     WaitlistEntry.WaitlistStatus status);
 
     /** Count WAITING entries for the same resource+slot that were created before the given timestamp (queue position). */
     @Query("SELECT COUNT(w) FROM WaitlistEntry w WHERE w.resource.id = :resourceId " +

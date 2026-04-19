@@ -3,7 +3,7 @@ import toast from 'react-hot-toast'
 import {
   Plus, CalendarCheck, X, Eye, LayoutList, Calendar,
   Clock, Users, CheckCircle2, XCircle, AlertCircle,
-  Ban, RefreshCw
+  Ban, RefreshCw, Pencil, Shield
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { useAuth } from '../context/AuthContext'
@@ -60,6 +60,7 @@ export default function BookingsPage() {
 
   const [rejectTarget, setRejectTarget] = useState(null)
   const [rejectReason, setRejectReason] = useState('')
+  const [editBooking,  setEditBooking]  = useState(null)
 
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'STAFF'
 
@@ -130,7 +131,7 @@ export default function BookingsPage() {
       setShowForm(false)
       load()
     } catch (err) {
-      toast.error(err.response?.data?.message || err.message || 'Failed to create booking')
+      toast.error(err.message ||err.message || 'Failed to create booking')
     }
   }
 
@@ -141,7 +142,7 @@ export default function BookingsPage() {
       toast.success('Removed from waitlist')
       loadWaitlist()
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to leave waitlist')
+      toast.error(err.message ||'Failed to leave waitlist')
     }
   }
 
@@ -152,7 +153,7 @@ export default function BookingsPage() {
       toast.success('Waitlist entry removed')
       loadWaitlist()
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to remove waitlist entry')
+      toast.error(err.message ||'Failed to remove waitlist entry')
     }
   }
 
@@ -164,7 +165,7 @@ export default function BookingsPage() {
       setDetailBooking(null)
       load()
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to cancel series')
+      toast.error(err.message ||'Failed to cancel series')
     }
   }
 
@@ -174,7 +175,7 @@ export default function BookingsPage() {
       toast.success('Booking approved')
       load()
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to approve booking')
+      toast.error(err.message ||'Failed to approve booking')
     }
   }
 
@@ -187,18 +188,34 @@ export default function BookingsPage() {
       setRejectReason('')
       load()
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to reject booking')
+      toast.error(err.message ||'Failed to reject booking')
     }
   }
 
   const handleCancel = async (id) => {
     if (!window.confirm('Cancel this booking?')) return
     try {
-      await bookingService.updateStatus(id, 'CANCELLED')
+      if (isAdmin) {
+        await bookingService.updateStatus(id, 'CANCELLED')
+      } else {
+        await bookingService.cancelOwn(id, user.id)
+      }
       toast.success('Booking cancelled')
       load()
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to cancel booking')
+      toast.error(err.message ||'Failed to cancel booking')
+    }
+  }
+
+  const handleEdit = async (data) => {
+    try {
+      const { _bookingId, _waitlist, date, ...rest } = data
+      await bookingService.update(_bookingId, rest)
+      toast.success('Booking updated!')
+      setEditBooking(null)
+      load()
+    } catch (err) {
+      toast.error(err.message ||err.message || 'Failed to update booking')
     }
   }
 
@@ -208,7 +225,7 @@ export default function BookingsPage() {
       toast.success('Booking marked as completed')
       load()
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to complete booking')
+      toast.error(err.message ||'Failed to complete booking')
     }
   }
 
@@ -219,54 +236,104 @@ export default function BookingsPage() {
     setFilterEndDate('')
   }
 
-  const displayed = isAdmin
-    ? bookings
-    : bookings.filter(b => !filterStatus || b.status === filterStatus)
+  const displayed = bookings.filter(b => !filterStatus || b.status === filterStatus)
 
   // Status count helpers
   const countOf = (s) => bookings.filter(b => b.status === s).length
 
   return (
     <div>
-      {/* ── Header ── */}
-      <div className="page-header page-header-row" style={{ marginBottom: 20 }}>
-        <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700 }}>Bookings</h1>
-          <p style={{ color: '#64748b', marginTop: 2, fontSize: 15 }}>
-            {isAdmin ? 'Manage all campus resource bookings' : 'Your resource booking requests'}
-          </p>
+      {/* ── Hero Banner ── */}
+      <div style={{
+        background: isAdmin
+          ? 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #1d4ed8 100%)'
+          : 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4f46e5 100%)',
+        borderRadius: 16, padding: '24px 28px', marginBottom: 22,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        boxShadow: '0 4px 28px rgba(15,23,42,0.45)',
+        position: 'relative', overflow: 'hidden', gap: 16,
+      }}>
+        <div style={{ position: 'absolute', right: -60, top: -60, width: 220, height: 220, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', right: 80, bottom: -80, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.03)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', left: -30, top: '50%', transform: 'translateY(-50%)', width: 120, height: 120, borderRadius: '50%', background: 'rgba(99,102,241,0.12)', pointerEvents: 'none' }} />
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18, zIndex: 1 }}>
+          <div style={{
+            width: 52, height: 52, borderRadius: 14,
+            background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.18)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            {isAdmin ? <Shield size={26} color="#93c5fd" /> : <CalendarCheck size={26} color="#a5b4fc" />}
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+              <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.3px' }}>
+                {isAdmin ? 'Booking Management' : 'My Bookings'}
+              </h1>
+              <span style={{
+                background: 'rgba(147,197,253,0.2)', border: '1px solid rgba(147,197,253,0.4)',
+                color: '#93c5fd', fontSize: 10, fontWeight: 700,
+                padding: '2px 9px', borderRadius: 20, letterSpacing: '0.08em', textTransform: 'uppercase',
+              }}>
+                {isAdmin ? 'Admin' : 'Student'}
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <p style={{ margin: 0, fontSize: 13, color: '#94a3b8' }}>
+                {isAdmin ? 'Review, approve and manage all campus resource bookings' : 'Track and manage your resource booking requests'}
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+                <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 0 2px rgba(74,222,128,0.3)' }} />
+                <span style={{ fontSize: 11, color: '#4ade80', fontWeight: 600 }}>Live</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <div className="view-toggle-group">
-            <button
-              className={`view-toggle-btn ${viewMode === 'table' ? 'active' : ''}`}
-              onClick={() => setViewMode('table')}
-              title="Table view"
-            >
-              <LayoutList size={15} />
-            </button>
-            <button
-              className={`view-toggle-btn ${viewMode === 'calendar' ? 'active' : ''}`}
-              onClick={() => setViewMode('calendar')}
-              title="Calendar view"
-            >
-              <Calendar size={15} />
+
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10, flexShrink: 0, zIndex: 1 }}>
+          <div style={{
+            background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)',
+            borderRadius: 10, padding: '6px 14px', color: '#e0f2fe', fontSize: 12, fontWeight: 600,
+          }}>
+            {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div style={{ display: 'flex', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 8, overflow: 'hidden', background: 'rgba(255,255,255,0.07)' }}>
+              <button onClick={() => setViewMode('table')} title="Table view" style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                padding: '6px 11px', border: 'none', cursor: 'pointer',
+                background: viewMode === 'table' ? 'rgba(255,255,255,0.2)' : 'transparent',
+                color: viewMode === 'table' ? '#fff' : 'rgba(255,255,255,0.55)',
+                borderRight: '1px solid rgba(255,255,255,0.12)', transition: 'all .12s',
+              }}><LayoutList size={14} /></button>
+              <button onClick={() => setViewMode('calendar')} title="Calendar view" style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                padding: '6px 11px', border: 'none', cursor: 'pointer',
+                background: viewMode === 'calendar' ? 'rgba(255,255,255,0.2)' : 'transparent',
+                color: viewMode === 'calendar' ? '#fff' : 'rgba(255,255,255,0.55)',
+                transition: 'all .12s',
+              }}><Calendar size={14} /></button>
+            </div>
+            <button onClick={() => setShowForm(true)} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '7px 16px', borderRadius: 8,
+              background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)',
+              color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            }}>
+              <Plus size={14} /> New Booking
             </button>
           </div>
-          <button className="btn btn-primary" onClick={() => setShowForm(true)} style={{ gap: 6 }}>
-            <Plus size={15} /> New Booking
-          </button>
         </div>
       </div>
 
       {/* ── Admin Stats Strip ── */}
       {isAdmin && !loading && (
         <div className="booking-stats-strip">
-          <StatChip label="Total" value={bookings.length} color="#2563eb" bg="#eff6ff" />
-          <StatChip label="Pending"   value={countOf('PENDING')}   color="#a16207" bg="#fefce8" />
-          <StatChip label="Approved"  value={countOf('APPROVED')}  color="#15803d" bg="#f0fdf4" />
-          <StatChip label="Completed" value={countOf('COMPLETED')} color="#1d4ed8" bg="#eff6ff" />
-          <StatChip label="Cancelled" value={countOf('CANCELLED')} color="#475569" bg="#f8fafc" />
+          <StatChip label="Total"     value={bookings.length}      color="#2563eb" bg="#eff6ff" borderColor="#bfdbfe" icon={<CalendarCheck size={15} />} />
+          <StatChip label="Pending"   value={countOf('PENDING')}   color="#a16207" bg="#fefce8" borderColor="#fde68a" icon={<AlertCircle size={15} />} />
+          <StatChip label="Approved"  value={countOf('APPROVED')}  color="#15803d" bg="#f0fdf4" borderColor="#bbf7d0" icon={<CheckCircle2 size={15} />} />
+          <StatChip label="Completed" value={countOf('COMPLETED')} color="#1d4ed8" bg="#eff6ff" borderColor="#bfdbfe" icon={<CheckCircle2 size={15} />} />
+          <StatChip label="Cancelled" value={countOf('CANCELLED')} color="#475569" bg="#f8fafc" borderColor="#cbd5e1" icon={<Ban size={15} />} />
         </div>
       )}
 
@@ -371,7 +438,7 @@ export default function BookingsPage() {
                 </thead>
                 <tbody>
                   {displayed.map((b) => (
-                    <tr key={b.id} className="booking-row">
+                    <tr key={b.id} className={`booking-row booking-row-${b.status.toLowerCase()}`}>
                       <td>
                         <span className="row-number">#{b.id}</span>
                       </td>
@@ -447,7 +514,7 @@ export default function BookingsPage() {
                           {/* Divider + contextual actions */}
                           {(
                             (isAdmin && (b.status === 'PENDING' || b.status === 'APPROVED')) ||
-                            (!isAdmin && b.status === 'PENDING')
+                            (!isAdmin && (b.status === 'PENDING' || b.status === 'APPROVED'))
                           ) && (
                             <>
                               <span className="action-divider" />
@@ -473,7 +540,17 @@ export default function BookingsPage() {
                                   </>
                                 )}
                                 {!isAdmin && b.status === 'PENDING' && (
-                                  <button className="action-btn action-btn-reject" onClick={() => handleCancel(b.id)}>
+                                  <>
+                                    <button className="action-btn action-btn-edit" title="Edit booking" onClick={() => setEditBooking(b)}>
+                                      <Pencil size={12} /> Edit
+                                    </button>
+                                    <button className="action-btn action-btn-reject" onClick={() => handleCancel(b.id)}>
+                                      <XCircle size={12} /> Cancel
+                                    </button>
+                                  </>
+                                )}
+                                {!isAdmin && b.status === 'APPROVED' && (
+                                  <button className="action-btn action-btn-cancel" onClick={() => handleCancel(b.id)}>
                                     <XCircle size={12} /> Cancel
                                   </button>
                                 )}
@@ -664,6 +741,31 @@ export default function BookingsPage() {
         )}
       </div>
 
+      {/* ── Edit Booking Modal ── */}
+      {editBooking && (
+        <div className="modal-backdrop">
+          <div className="modal">
+            <div className="modal-header">
+              <div>
+                <h2>Edit Booking #{editBooking.id}</h2>
+                <p>Update your pending booking details</p>
+              </div>
+              <button className="btn btn-sm btn-secondary btn-icon" onClick={() => setEditBooking(null)} title="Close">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <BookingForm
+                initialData={editBooking}
+                bookingId={editBooking.id}
+                onSubmit={handleEdit}
+                onCancel={() => setEditBooking(null)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── New Booking Modal ── */}
       {showForm && (
         <div className="modal-backdrop">
@@ -807,6 +909,11 @@ export default function BookingsPage() {
                   <Ban size={13} /> Cancel Entire Series
                 </button>
               )}
+              {!isAdmin && detailBooking.status === 'PENDING' && (
+                <button className="btn btn-secondary btn-sm" onClick={() => { setDetailBooking(null); setEditBooking(detailBooking) }}>
+                  <Pencil size={13} /> Edit
+                </button>
+              )}
               <button className="btn btn-secondary" style={{ marginLeft: 'auto' }} onClick={() => setDetailBooking(null)}>
                 Close
               </button>
@@ -818,10 +925,13 @@ export default function BookingsPage() {
   )
 }
 
-function StatChip({ label, value, color, bg }) {
+function StatChip({ label, value, color, bg, borderColor, icon }) {
   return (
-    <div className="stat-chip" style={{ background: bg, borderColor: color + '33' }}>
-      <span className="stat-chip-value" style={{ color }}>{value}</span>
+    <div className="stat-chip" style={{ background: bg, borderColor: borderColor || color + '33' }}>
+      <div className="stat-chip-top">
+        <span className="stat-chip-value" style={{ color }}>{value}</span>
+        {icon && <span className="stat-chip-icon" style={{ color, background: color + '18' }}>{icon}</span>}
+      </div>
       <span className="stat-chip-label">{label}</span>
     </div>
   )

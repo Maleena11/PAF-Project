@@ -63,7 +63,7 @@ export default function Dashboard() {
       setReBooking(null)
       loadStats()
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to submit booking')
+      toast.error(err.message ||'Failed to submit booking')
     }
   }
 
@@ -74,7 +74,7 @@ export default function Dashboard() {
       toast.success('Booking cancelled')
       loadStats()
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to cancel booking')
+      toast.error(err.message ||'Failed to cancel booking')
     }
   }
 

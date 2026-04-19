@@ -169,6 +169,10 @@ tr:hover td { background: #f8fafc; }
 .modal {
   background: var(--surface); border-radius: 16px;
   width: 100%; max-width: 620px;
+  max-height: 90vh;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 64px -12px rgba(0,0,0,.3), 0 0 0 1px rgba(0,0,0,.06);
 }
 .modal--wide {
   max-width: 820px;
@@ -674,7 +678,7 @@ tr:hover td { background: #f8fafc; }
   letter-spacing: .03em;
 }
 .slot-grid-body {
-  max-height: 300px;
+  max-height: 400px;
   overflow-y: auto;
 }
 .slot-row {
@@ -685,43 +689,45 @@ tr:hover td { background: #f8fafc; }
 .slot-row:last-child { border-bottom: none; }
 .slot-time-col {
   padding: 0 8px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
-  font-weight: 500;
+  font-weight: 600;
   display: flex;
   align-items: center;
   white-space: nowrap;
 }
 .slot-cell {
-  height: 30px;
+  height: 40px;
   border-left: 1px solid var(--border);
   cursor: pointer;
   transition: background .08s;
+  position: relative;
 }
-/* Free — pale green */
-.slot-free { background: #f0fdf4; }
-.slot-free:hover { background: #dcfce7; }
-/* Booked — red with hatching */
+/* Free — visible green */
+.slot-free { background: #bbf7d0; border-bottom: 1px solid #86efac; }
+.slot-free:hover { background: #86efac; }
+/* Booked — strong red with hatching */
 .slot-booked {
-  background: #fee2e2;
+  background: #fca5a5;
   cursor: not-allowed;
+  border-bottom: 1px solid #f87171;
   background-image: repeating-linear-gradient(
     45deg,
     transparent,
-    transparent 4px,
-    rgba(220,38,38,.18) 4px,
-    rgba(220,38,38,.18) 8px
+    transparent 5px,
+    rgba(220,38,38,.25) 5px,
+    rgba(220,38,38,.25) 10px
   );
 }
-/* Confirmed selection — blue */
-.slot-selected { background: #dbeafe; }
-.slot-selected:hover { background: #bfdbfe; }
-/* Live hover preview — slightly darker blue */
-.slot-hovering { background: #93c5fd; }
+/* Confirmed selection — vivid blue */
+.slot-selected { background: #93c5fd; border-bottom: 1px solid #60a5fa; }
+.slot-selected:hover { background: #60a5fa; }
+/* Live hover preview — darker blue */
+.slot-hovering { background: #3b82f6; border-bottom: 1px solid #2563eb; }
 /* Swatch colours */
-.slot-swatch.slot-free     { background: #f0fdf4; }
+.slot-swatch.slot-free     { background: #bbf7d0; }
 .slot-swatch.slot-booked   { background: #fca5a5; }
-.slot-swatch.slot-selected { background: #dbeafe; }
+.slot-swatch.slot-selected { background: #93c5fd; }
 /* Confirmed selection footer */
 .slot-selection-display {
   display: flex;
@@ -734,10 +740,10 @@ tr:hover td { background: #f8fafc; }
   color: #1d4ed8;
 }
 /* Waitlist hover range — amber */
-.slot-waitlist-hovering { background: #fde68a; }
-.slot-waitlist-hovering:hover { background: #fbbf24; }
+.slot-waitlist-hovering { background: #fbbf24; border-bottom: 1px solid #f59e0b; }
+.slot-waitlist-hovering:hover { background: #f59e0b; }
 /* Waitlist legend swatch */
-.slot-swatch.slot-waitlist-swatch { background: #fde68a; }
+.slot-swatch.slot-waitlist-swatch { background: #fbbf24; }
 
 /* ── Waitlist Banner (in BookingForm) ────── */
 .waitlist-banner {
@@ -912,32 +918,53 @@ tr:hover td { background: #f8fafc; }
 
 /* ── Stats strip ────────────────────────── */
 .booking-stats-strip {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 18px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
 }
+@media (max-width: 900px) { .booking-stats-strip { grid-template-columns: repeat(3,1fr); } }
+@media (max-width: 560px) { .booking-stats-strip { grid-template-columns: repeat(2,1fr); } }
+
 .stat-chip {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-radius: 10px;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 12px;
   border: 1px solid #e2e8f0;
   background: #f8fafc;
-  min-width: 90px;
+  transition: box-shadow .15s, transform .15s;
+}
+.stat-chip:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,.08);
+  transform: translateY(-1px);
+}
+.stat-chip-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 .stat-chip-value {
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 30px;
+  font-weight: 800;
   line-height: 1;
+  letter-spacing: -.02em;
+}
+.stat-chip-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  flex-shrink: 0;
 }
 .stat-chip-label {
   font-size: 11px;
   font-weight: 600;
   color: #64748b;
   text-transform: uppercase;
-  letter-spacing: .04em;
+  letter-spacing: .06em;
 }
 
 /* ── View toggle ────────────────────────── */
@@ -984,28 +1011,42 @@ tr:hover td { background: #f8fafc; }
   flex-wrap: wrap;
 }
 .status-pill {
-  padding: 4px 12px;
+  padding: 5px 14px;
   border-radius: 9999px;
   font-size: 12px;
-  font-weight: 500;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: #64748b;
+  font-weight: 600;
+  border: 1.5px solid #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
   cursor: pointer;
-  transition: all .12s;
+  transition: all .15s;
   display: inline-flex;
   align-items: center;
   gap: 5px;
   white-space: nowrap;
+  letter-spacing: .01em;
 }
-.status-pill:hover { border-color: #94a3b8; color: var(--text); }
-.status-pill.active { background: var(--text); color: #fff; border-color: var(--text); }
+.status-pill:hover { border-color: #94a3b8; color: var(--text); background: #f1f5f9; }
+.status-pill.active { background: #334155; border-color: #334155; color: #fff; }
 
-.status-pill-pending.active  { background: #a16207; border-color: #a16207; }
-.status-pill-approved.active { background: #15803d; border-color: #15803d; }
-.status-pill-cancelled.active{ background: #475569; border-color: #475569; }
-.status-pill-rejected.active { background: #b91c1c; border-color: #b91c1c; }
-.status-pill-completed.active{ background: #1d4ed8; border-color: #1d4ed8; }
+/* Idle colors — each pill is recognisable even when not selected */
+.status-pill-pending  { border-color: #fcd34d; color: #92400e; background: #fffbeb; }
+.status-pill-approved { border-color: #6ee7b7; color: #065f46; background: #f0fdf4; }
+.status-pill-rejected { border-color: #fca5a5; color: #991b1b; background: #fff1f2; }
+.status-pill-completed{ border-color: #93c5fd; color: #1e40af; background: #eff6ff; }
+.status-pill-cancelled{ border-color: #cbd5e1; color: #475569; background: #f8fafc; }
+
+.status-pill-pending:hover  { background: #fef3c7; border-color: #f59e0b; }
+.status-pill-approved:hover { background: #d1fae5; border-color: #10b981; }
+.status-pill-rejected:hover { background: #fee2e2; border-color: #ef4444; }
+.status-pill-completed:hover{ background: #dbeafe; border-color: #3b82f6; }
+.status-pill-cancelled:hover{ background: #e2e8f0; border-color: #94a3b8; }
+
+.status-pill-pending.active  { background: #d97706; border-color: #d97706; color: #fff; }
+.status-pill-approved.active { background: #059669; border-color: #059669; color: #fff; }
+.status-pill-cancelled.active{ background: #475569; border-color: #475569; color: #fff; }
+.status-pill-rejected.active { background: #dc2626; border-color: #dc2626; color: #fff; }
+.status-pill-completed.active{ background: #2563eb; border-color: #2563eb; color: #fff; }
 
 .status-pill-count {
   display: inline-flex;
@@ -1038,27 +1079,32 @@ tr:hover td { background: #f8fafc; }
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
-  box-shadow: var(--shadow);
+  box-shadow: 0 1px 4px rgba(0,0,0,.07), 0 4px 12px rgba(0,0,0,.04);
   overflow: hidden;
+  border-top: 3px solid #2563eb;
 }
 
 /* ── Booking table ───────────────────────── */
 .booking-table { width: 100%; border-collapse: collapse; }
 .booking-table thead tr {
-  background: #f1f5f9;
-  border-top: 1px solid #e2e8f0;
-  border-bottom: 2px solid #d1d5db;
+  background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
+  border-top: none;
+  border-bottom: 2px solid #cbd5e1;
 }
 .booking-table th {
   text-align: left;
-  padding: 11px 14px;
+  padding: 12px 14px;
   font-size: 10px;
   font-weight: 700;
-  color: #64748b;
+  color: #475569;
   text-transform: uppercase;
-  letter-spacing: .07em;
+  letter-spacing: .08em;
   white-space: nowrap;
   border-right: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: inherit;
 }
 .booking-table th:last-child { border-right: none; }
 .booking-table td {
@@ -1080,6 +1126,18 @@ tr:hover td { background: #f8fafc; }
 /* Zebra stripe for extra separation */
 .booking-row:nth-child(even) td { background: #fafbfc; }
 .booking-row:nth-child(even):hover td { background: #f0f6ff; }
+
+/* Status-based left accent bars */
+.booking-row-pending   td:first-child { box-shadow: inset 3px 0 0 #f59e0b; }
+.booking-row-approved  td:first-child { box-shadow: inset 3px 0 0 #22c55e; }
+.booking-row-rejected  td:first-child { box-shadow: inset 3px 0 0 #ef4444; }
+.booking-row-completed td:first-child { box-shadow: inset 3px 0 0 #3b82f6; }
+.booking-row-cancelled td:first-child { box-shadow: inset 3px 0 0 #94a3b8; }
+
+/* Pending rows get a subtle warm tint so admins notice them instantly */
+.booking-row-pending td { background: #fffdf5 !important; }
+.booking-row-pending:hover td { background: #fff7e0 !important; }
+.booking-row-pending:hover td:first-child { box-shadow: inset 3px 0 0 #f59e0b; }
 
 /* Cell helpers */
 .row-number {
@@ -1228,6 +1286,13 @@ tr:hover td { background: #f8fafc; }
   border-color: #bfdbfe;
 }
 .action-btn-complete:hover { background: #bfdbfe; }
+
+.action-btn-edit {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+.action-btn-edit:hover { background: #fde68a; }
 
 /* ── Section header (Waitlist) ───────────── */
 .section-header {

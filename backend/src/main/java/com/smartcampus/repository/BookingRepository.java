@@ -57,4 +57,13 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("startTime") LocalDateTime startTime,
             @Param("endTime") LocalDateTime endTime,
             @Param("excludeId") Long excludeId);
+
+    // Bookings for a resource overlapping a specific day (for TimeSlotPicker efficiency)
+    @Query("SELECT b FROM Booking b WHERE b.resource.id = :resourceId " +
+           "AND b.status NOT IN ('CANCELLED', 'REJECTED') " +
+           "AND b.startTime < :endOfDay AND b.endTime > :startOfDay")
+    List<Booking> findByResourceIdAndDate(
+            @Param("resourceId") Long resourceId,
+            @Param("startOfDay") LocalDateTime startOfDay,
+            @Param("endOfDay") LocalDateTime endOfDay);
 }
