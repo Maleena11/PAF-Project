@@ -84,7 +84,15 @@ public class UserController {
     }
 
     @GetMapping("/users")
-    public ResponseEntity<?> getAllUsers() {
+    public ResponseEntity<?> getAllUsers(@RequestParam(required = false) String role) {
+        if (role != null && !role.isBlank()) {
+            try {
+                User.Role r = User.Role.valueOf(role.toUpperCase());
+                return ResponseEntity.ok(userRepository.findByRole(r));
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Invalid role: " + role));
+            }
+        }
         return ResponseEntity.ok(userRepository.findAll());
     }
 

@@ -19,6 +19,11 @@ const ticketService = {
   removeImage: (id, slot) => api.delete(`/tickets/${id}/image`, { params: { slot } }),
   addComment: (id, userId, content) => api.post(`/tickets/${id}/comments`, { userId, content }),
   delete: (id) => api.delete(`/tickets/${id}`),
+  getAssigned: (userId) => api.get(`/tickets/assigned/${userId}`),
+  startWork: (id, staffId) => api.patch(`/tickets/${id}/start`, null, { params: { staffId } }),
+  resolve: (id, resolutionNotes) => api.patch(`/tickets/${id}/resolve`, { resolutionNotes }),
+  close: (id) => api.patch(`/tickets/${id}/close`),
+  reject: (id, reason) => api.patch(`/tickets/${id}/reject`, { reason }),
 }
 
 export default ticketService
