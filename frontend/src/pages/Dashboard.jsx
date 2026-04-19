@@ -443,40 +443,13 @@ export default function Dashboard() {
 
       {/* ── Pending Approvals Queue (admin + staff) ── */}
       {(isAdmin ? adminTab === 'operations' : true) && (isAdmin || isStaff) && (
-
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: 16,
-        marginBottom: 24,
-      }}>
-        {stats.map(s => (
-          <StatCard
-            key={s.label}
-            icon={s.icon}
-            label={s.label}
-            value={s.value}
-            color={s.color}
-            loading={loading}
-          />
-        ))}
-      </div>
-
-      {/* ── Pending Approvals Queue (admin only) ── */}
-      {isAdmin && (
-
         <div style={{ marginBottom: 24 }}>
           <BookingApprovalQueue onUpdate={loadStats} />
         </div>
       )}
 
-
       {/* ── Resource Utilization Summary (admin + staff) ── */}
       {(isAdmin ? adminTab === 'operations' : true) && (isAdmin || isStaff) && (
-
-      {/* ── Resource Utilization Summary (admin only) ── */}
-      {isAdmin && (
-
         <div style={{ marginBottom: 24 }}>
           <ResourceUtilizationSummary onUpdate={loadStats} />
         </div>
@@ -500,11 +473,6 @@ export default function Dashboard() {
           </div>
           <RecentTicketsAdmin onUpdate={loadStats} />
         </div>
-
-      {/* ── Admin: full-width recent tickets with inline status control ── */}
-      {isAdmin && (
-        <RecentTicketsAdmin onUpdate={loadStats} />
-
       )}
 
       {/* ── User: Quick Actions ── */}
