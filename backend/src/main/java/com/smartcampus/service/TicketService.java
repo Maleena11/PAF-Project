@@ -7,8 +7,10 @@ import com.smartcampus.model.Notification.NotificationType;
 import com.smartcampus.model.Ticket.TicketStatus;
 import com.smartcampus.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -132,8 +134,20 @@ public class TicketService {
         return ticketRepository.findByAssignedToId(userId);
     }
 
+    private void assertNotTerminal(Ticket ticket) {
+        if (ticket.getStatus() == TicketStatus.REJECTED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Ticket #" + ticket.getId() + " has been rejected and cannot be modified.");
+        }
+        if (ticket.getStatus() == TicketStatus.CLOSED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Ticket #" + ticket.getId() + " is closed and cannot be modified.");
+        }
+    }
+
     public Ticket assignTicket(Long ticketId, Long assigneeId) {
         Ticket ticket = getTicketById(ticketId);
+        assertNotTerminal(ticket);
         User assignee = userRepository.findById(assigneeId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + assigneeId));
         ticket.setAssignedTo(assignee);
@@ -154,6 +168,7 @@ public class TicketService {
 
     public Ticket startWork(Long ticketId, Long staffId) {
         Ticket ticket = getTicketById(ticketId);
+        assertNotTerminal(ticket);
         ticket.setStatus(TicketStatus.IN_PROGRESS);
         if (ticket.getFirstResponseAt() == null) {
             ticket.setFirstResponseAt(LocalDateTime.now());
@@ -170,6 +185,7 @@ public class TicketService {
 
     public Ticket resolveTicket(Long ticketId, String resolutionNotes) {
         Ticket ticket = getTicketById(ticketId);
+        assertNotTerminal(ticket);
         ticket.setStatus(TicketStatus.RESOLVED);
         ticket.setResolutionNotes(resolutionNotes);
         ticket.setResolvedAt(LocalDateTime.now());
@@ -185,6 +201,9 @@ public class TicketService {
 
     public Ticket closeTicket(Long ticketId) {
         Ticket ticket = getTicketById(ticketId);
+        if (ticket.getStatus() == TicketStatus.REJECTED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rejected tickets cannot be closed.");
+        }
         ticket.setStatus(TicketStatus.CLOSED);
         Ticket updated = ticketRepository.save(ticket);
 
@@ -198,14 +217,31 @@ public class TicketService {
 
     public Ticket rejectTicket(Long ticketId, String reason) {
         Ticket ticket = getTicketById(ticketId);
+        if (ticket.getStatus() == TicketStatus.REJECTED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket is already rejected.");
+        }
+        if (ticket.getStatus() == TicketStatus.CLOSED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Closed tickets cannot be rejected.");
+        }
+
+        User previousAssignee = ticket.getAssignedTo();
         ticket.setStatus(TicketStatus.REJECTED);
         ticket.setRejectionReason(reason);
+        ticket.setRejectedAt(LocalDateTime.now());
+        ticket.setAssignedTo(null);
         Ticket updated = ticketRepository.save(ticket);
 
         notificationService.createNotification(ticket.getUser(),
                 "Ticket #" + ticketId + " Rejected",
                 "Your ticket \"" + ticket.getTitle() + "\" was rejected. Reason: " + reason,
                 NotificationType.TICKET, ticketId);
+
+        if (previousAssignee != null) {
+            notificationService.createNotification(previousAssignee,
+                    "Ticket #" + ticketId + " Rejected & Unassigned",
+                    "Ticket \"" + ticket.getTitle() + "\" has been rejected by admin and unassigned from you.",
+                    NotificationType.TICKET, ticketId);
+        }
 
         return updated;
     }

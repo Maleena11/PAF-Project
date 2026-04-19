@@ -33,6 +33,8 @@ export default function TicketsPage() {
   const [selected, setSelected]     = useState(null)
   const [comment, setComment]       = useState('')
   const [posting, setPosting]       = useState(false)
+  const [editingCommentId, setEditingCommentId] = useState(null)
+  const [editCommentContent, setEditCommentContent] = useState('')
   const [detailLoading, setDetailLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('')
@@ -146,6 +148,30 @@ export default function TicketsPage() {
     finally { setPosting(false) }
   }
 
+  const handleEditCommentSubmit = async (commentId) => {
+    if (!editCommentContent.trim()) return
+    setPosting(true)
+    try {
+      await ticketService.editComment(commentId, user.id, user.role, editCommentContent)
+      toast.success('Comment updated')
+      setEditingCommentId(null)
+      setEditCommentContent('')
+      const { data } = await ticketService.getById(selected.id)
+      setSelected(data)
+    } catch (err) { toast.error(err.message) }
+    finally { setPosting(false) }
+  }
+
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm('Delete this comment?')) return
+    try {
+      await ticketService.deleteComment(commentId, user.id, user.role)
+      toast.success('Comment deleted')
+      const { data } = await ticketService.getById(selected.id)
+      setSelected(data)
+    } catch (err) { toast.error(err.message) }
+  }
+
   const handleStartWork = async (ticketId) => {
     setSubmittingAction(true)
     try {
@@ -217,6 +243,7 @@ export default function TicketsPage() {
   }
 
   const displayed = tickets
+    .filter(t => isStaff ? t.status !== 'REJECTED' : true)
     .filter(t => filterStatus ? t.status === filterStatus : true)
     .filter(t => priorityFilter ? t.priority === priorityFilter : true)
     .filter(t => categoryFilter ? t.category === categoryFilter : true)
@@ -628,6 +655,12 @@ export default function TicketsPage() {
                         <td><span className={`badge ${STATUS_CLASS[t.status] || 'badge-gray'}`}>{t.status.replace('_', ' ')}</span></td>
                         <td onClick={e => e.stopPropagation()}>
                           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                            <button
+                              onClick={() => openDetail(t)}
+                              style={{ padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: '1px solid #e2e8f0', background: '#fff', color: '#475569', whiteSpace: 'nowrap' }}
+                            >
+                              View
+                            </button>
                             {t.status !== 'CLOSED' && t.status !== 'REJECTED' && (
                               <button
                                 onClick={() => { setAssignModal(t); setSelectedStaffId(t.assignedTo?.id || '') }}
@@ -636,12 +669,23 @@ export default function TicketsPage() {
                                 👤 Assign
                               </button>
                             )}
-                            <button
-                              onClick={() => openDetail(t)}
-                              style={{ padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: '1px solid #e2e8f0', background: '#fff', color: '#475569', whiteSpace: 'nowrap' }}
-                            >
-                              View
-                            </button>
+                            {(t.status === 'CLOSED' || t.status === 'REJECTED') && (
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation()
+                                  if (window.confirm('Permanently delete this ticket?')) {
+                                    try {
+                                      await ticketService.delete(t.id)
+                                      setTickets(tickets.filter(tk => tk.id !== t.id))
+                                      toast.success('Ticket deleted')
+                                    } catch (err) { toast.error('Failed to delete ticket') }
+                                  }
+                                }}
+                                style={{ padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: 'none', background: '#fee2e2', color: '#dc2626', whiteSpace: 'nowrap' }}
+                              >
+                                🗑️ Delete
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -727,8 +771,8 @@ export default function TicketsPage() {
                 </div>
                 {/* Action buttons */}
                 <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                  {/* Student: Edit & Delete */}
-                  {!isAdmin && !isStaff && (selected.status === 'OPEN' || selected.status === 'REJECTED') && (
+                  {/* Student: Edit & Delete — only for OPEN tickets */}
+                  {!isAdmin && !isStaff && selected.status === 'OPEN' && (
                     <>
                       <button
                         onClick={() => setIsEditing(true)}
@@ -804,7 +848,7 @@ export default function TicketsPage() {
                     selected.contactDetails && { icon: <Phone size={14} />, label: 'Contact', value: selected.contactDetails, color: '#059669', bg: '#ecfdf5' },
                     selected.assignedTo    && { icon: <User size={14} />,  label: 'Assigned To', value: selected.assignedTo?.name, color: '#7c3aed', bg: '#f5f3ff' },
                   ].filter(Boolean).map((m, i) => (
-                    <div key={i} style={{ background: '#f8fafc', border: '1px solid #f1f5f9', borderRadius: 12, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div key={i} style={{ background: '#f8fafc', border: '1.5px solid #cbd5e1', borderRadius: 12, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div style={{ width: 32, height: 32, borderRadius: 8, background: m.bg, color: m.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         {m.icon}
                       </div>
@@ -819,7 +863,7 @@ export default function TicketsPage() {
                 {/* Description */}
                 <div style={{ marginBottom: 22 }}>
                   <p style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Description</p>
-                  <p style={{ fontSize: 14, color: '#334155', lineHeight: 1.8, background: '#f8fafc', borderRadius: 12, padding: '14px 16px', border: '1px solid #f1f5f9', margin: 0 }}>
+                  <p style={{ fontSize: 14, color: '#334155', lineHeight: 1.8, background: '#f8fafc', borderRadius: 12, padding: '14px 16px', border: '1.5px solid #cbd5e1', margin: 0 }}>
                     {selected.description}
                   </p>
                 </div>
@@ -895,14 +939,14 @@ export default function TicketsPage() {
 
                 {/* Ticket Progress */}
                 {selected.status !== 'REJECTED' && (
-                  <div style={{ background: '#fff', borderRadius: 14, padding: '18px 20px', border: '1px solid #f1f5f9', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+                  <div style={{ background: '#fff', borderRadius: 14, padding: '18px 20px', border: '1.5px solid #cbd5e1', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
                     <p style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 18 }}>Ticket Progress</p>
                     <StunningProgress status={selected.status} />
                   </div>
                 )}
 
                 {/* Comments */}
-                <div style={{ background: '#fff', borderRadius: 14, padding: '18px 20px', border: '1px solid #f1f5f9', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ background: '#fff', borderRadius: 14, padding: '18px 20px', border: '1.5px solid #cbd5e1', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', flex: 1, display: 'flex', flexDirection: 'column' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                     <p style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>
                       Activity
@@ -924,22 +968,63 @@ export default function TicketsPage() {
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16, flex: 1, overflowY: 'auto' }}>
-                      {selected.comments.map(c => (
-                        <div key={c.id} style={{ display: 'flex', gap: 10 }}>
-                          <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0, boxShadow: '0 2px 6px rgba(99,102,241,0.3)' }}>
-                            {c.user?.name?.[0]?.toUpperCase()}
-                          </div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                              <span style={{ fontSize: 13, fontWeight: 700, color: '#1e293b' }}>{c.user?.name}</span>
-                              <span style={{ fontSize: 11, color: '#94a3b8' }}>{formatDistanceToNow(new Date(c.createdAt), { addSuffix: true })}</span>
+                      {selected.comments.map(c => {
+                        const isOwner = c.user?.id === user.id
+                        const isTechnician = c.user?.role === 'STAFF'
+                        const isSystemAdmin = c.user?.role === 'ADMIN'
+
+                        // Dynamic role colors tied strictly to user role
+                        const roleColor = isSystemAdmin ? '#2563eb' : isTechnician ? '#16a34a' : '#7e22ce'
+                        const roleBg = isSystemAdmin ? '#dbeafe' : isTechnician ? '#dcfce7' : '#f3e8ff'
+                        
+                        return (
+                          <div key={c.id} style={{ display: 'flex', gap: 10, flexDirection: isOwner ? 'row-reverse' : 'row' }}>
+                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: roleColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0, boxShadow: `0 2px 6px ${roleColor}66` }}>
+                              {c.user?.name?.[0]?.toUpperCase()}
                             </div>
-                            <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.6, background: '#f8fafc', borderRadius: 10, padding: '8px 12px', margin: 0, border: '1px solid #f1f5f9' }}>
-                              {c.content}
-                            </p>
+                            <div style={{ maxWidth: '85%', display: 'flex', flexDirection: 'column', alignItems: isOwner ? 'flex-end' : 'flex-start' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexDirection: isOwner ? 'row-reverse' : 'row' }}>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: '#1e293b' }}>{c.user?.name}</span>
+                                {isTechnician && <span style={{ fontSize: 9, background: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: 10, fontWeight: 700 }}>STAFF</span>}
+                                {isSystemAdmin && <span style={{ fontSize: 9, background: '#dbeafe', color: '#1e40af', padding: '2px 6px', borderRadius: 10, fontWeight: 700 }}>ADMIN</span>}
+                                {!isTechnician && !isSystemAdmin && <span style={{ fontSize: 9, background: '#f3e8ff', color: '#7e22ce', padding: '2px 6px', borderRadius: 10, fontWeight: 700 }}>USER</span>}
+                                <span style={{ fontSize: 11, color: '#94a3b8', whiteSpace: 'nowrap' }}>• {formatDistanceToNow(new Date(c.createdAt), { addSuffix: true })}</span>
+                                {c.updatedAt && c.updatedAt !== c.createdAt && (
+                                  <span style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', whiteSpace: 'nowrap' }}>(edited)</span>
+                                )}
+                              </div>
+                              
+                              {editingCommentId === c.id ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%', minWidth: 280 }}>
+                                  <textarea
+                                    value={editCommentContent}
+                                    onChange={e => setEditCommentContent(e.target.value)}
+                                    style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1.5px solid ${roleColor}`, fontSize: 13, color: '#334155', fontFamily: 'inherit', resize: 'vertical', outline: 'none' }}
+                                  />
+                                  <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                                    <button onClick={() => { setEditingCommentId(null); setEditCommentContent('') }} style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, background: '#f1f5f9', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: 6, cursor: 'pointer' }}>Cancel</button>
+                                    <button onClick={() => handleEditCommentSubmit(c.id)} disabled={posting || !editCommentContent.trim()} style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, background: roleColor, color: '#fff', border: 'none', borderRadius: 6, cursor: posting || !editCommentContent.trim() ? 'not-allowed' : 'pointer' }}>Save</button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: isOwner ? 'flex-end' : 'flex-start' }}>
+                                  <p style={{ fontSize: 13, lineHeight: 1.5, background: roleBg, color: isOwner ? '#1e3a8a' : '#1e293b', borderRadius: 14, borderBottomRightRadius: isOwner ? 2 : 14, borderBottomLeftRadius: isOwner ? 14 : 2, padding: '10px 14px', margin: 0, border: `1px solid ${roleColor}22` }}>
+                                    {c.content}
+                                  </p>
+                                  <div style={{ display: 'flex', gap: 10, marginTop: 4, opacity: 0.6 }}>
+                                    {(isOwner) && selected.status !== 'CLOSED' && selected.status !== 'REJECTED' && (
+                                      <button onClick={() => { setEditingCommentId(c.id); setEditCommentContent(c.content) }} style={{ border: 'none', background: 'none', fontSize: 11, color: '#64748b', cursor: 'pointer', padding: 0, fontWeight: 600 }}>Edit</button>
+                                    )}
+                                    {(isOwner || isAdmin) && selected.status !== 'CLOSED' && selected.status !== 'REJECTED' && (
+                                      <button onClick={() => handleDeleteComment(c.id)} style={{ border: 'none', background: 'none', fontSize: 11, color: '#ef4444', cursor: 'pointer', padding: 0, fontWeight: 600 }}>Delete</button>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   )}
 
@@ -1169,21 +1254,22 @@ const PRIORITY_BORDER = {
 function ResourceStyleCard({ ticket: t, onClick }) {
   const theme      = CAT_THEME[t.category] || CAT_THEME.OTHER
   const pri        = CARD_PRIORITY[t.priority] || CARD_PRIORITY.MEDIUM
-  const prioBorder = PRIORITY_BORDER[t.priority] || '#e2e8f0'
+  const isRejected = t.status === 'REJECTED'
+  const prioBorder = isRejected ? '#fca5a5' : (PRIORITY_BORDER[t.priority] || '#e2e8f0')
 
   return (
     <div
       onClick={onClick}
       style={{
         background: '#fff', borderRadius: 20, overflow: 'hidden',
-        border: '1px solid #e8edf2',
+        border: `2px solid ${isRejected ? '#fca5a5' : '#e8edf2'}`,
         cursor: 'pointer',
-        boxShadow: `0 2px 12px ${prioBorder}22`,
+        boxShadow: isRejected ? '0 2px 12px rgba(220,38,38,0.12)' : `0 2px 12px ${prioBorder}22`,
         transition: 'all .22s ease',
         display: 'flex', flexDirection: 'column',
       }}
-      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-5px)'; e.currentTarget.style.boxShadow = `0 16px 36px ${prioBorder}44` }}
-      onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)';    e.currentTarget.style.boxShadow = `0 2px 12px ${prioBorder}22` }}
+      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-5px)'; e.currentTarget.style.boxShadow = isRejected ? '0 16px 36px rgba(220,38,38,0.2)' : `0 16px 36px ${prioBorder}44` }}
+      onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)';    e.currentTarget.style.boxShadow = isRejected ? '0 2px 12px rgba(220,38,38,0.12)' : `0 2px 12px ${prioBorder}22` }}
     >
       {/* ── Colored banner ── */}
       <div style={{ background: `linear-gradient(135deg, ${theme.bg}, ${theme.bg}cc)`, height: 140, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
@@ -1231,6 +1317,17 @@ function ResourceStyleCard({ ticket: t, onClick }) {
         <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.6, margin: '6px 0 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', flexGrow: 1 }}>
           {t.description}
         </p>
+
+        {/* Rejection reason banner */}
+        {isRejected && t.rejectionReason && (
+          <div style={{ marginTop: 10, background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 10, padding: '8px 12px', display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+            <span style={{ fontSize: 12, flexShrink: 0, marginTop: 1 }}>❌</span>
+            <div>
+              <span style={{ fontSize: 10, fontWeight: 800, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 2 }}>Rejection Reason</span>
+              <span style={{ fontSize: 12, color: '#991b1b', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{t.rejectionReason}</span>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, paddingTop: 12, borderTop: `1px solid ${prioBorder}33` }}>
