@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import {
   Building2, FlaskConical, Users, Dumbbell,
   BookOpen, Mic2, LayoutGrid, CheckCircle2,
-  MapPin, Hash, FileText, ChevronDown
+  MapPin, Hash, FileText, ChevronDown, ImagePlus, X
 } from 'lucide-react'
 
 const TYPE_OPTIONS = [
@@ -30,8 +30,25 @@ export default function ResourceForm({ initial, onSubmit, onCancel }) {
   })
   const [typeOpen, setTypeOpen] = useState(false)
   const typeRef = useRef(null)
+  const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState(initial?.imageUrl || null)
+  const fileInputRef = useRef(null)
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+    setImageError(false)
+  }
+
+  const removeImage = () => {
+    setImageFile(null)
+    setImagePreview(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
 
   useEffect(() => {
     const handler = (e) => {
@@ -41,10 +58,14 @@ export default function ResourceForm({ initial, onSubmit, onCancel }) {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
+  const [imageError, setImageError] = useState(false)
+
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!form.type) { setTypeOpen(true); return }
-    onSubmit({ ...form, capacity: Number(form.capacity) })
+    if (!initial && !imageFile) { setImageError(true); return }
+    setImageError(false)
+    onSubmit({ ...form, capacity: Number(form.capacity), _imageFile: imageFile })
   }
 
   return (
@@ -213,6 +234,40 @@ export default function ResourceForm({ initial, onSubmit, onCancel }) {
           onChange={e => set('description', e.target.value)}
           placeholder="Notes, equipment list, or special access details…"
         />
+      </div>
+
+      {/* ── Image Upload ── */}
+      <div className="rf-field">
+        <label className="rf-label">
+          <ImagePlus size={12} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+          Image {initial ? <span className="rf-optional">(optional)</span> : <span className="rf-required">*</span>}
+        </label>
+        {imageError && <span style={{ fontSize: 12, color: '#ef4444', marginBottom: 4, display: 'block' }}>Image is required</span>}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={handleImageChange}
+        />
+        {imagePreview ? (
+          <div className="rf-image-preview-wrap">
+            <img src={imagePreview} alt="Resource preview" className="rf-image-preview" />
+            <button type="button" className="rf-image-remove" onClick={removeImage} title="Remove image">
+              <X size={14} />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="rf-image-dropzone"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <ImagePlus size={20} style={{ color: '#94a3b8', marginBottom: 4 }} />
+            <span style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>Click to upload an image</span>
+            <span style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>PNG, JPG, GIF up to 10MB</span>
+          </button>
+        )}
       </div>
 
       {/* ── Actions ── */}

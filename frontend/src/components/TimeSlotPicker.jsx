@@ -52,6 +52,7 @@ export default function TimeSlotPicker({
   startTime, endTime,
   onSelect,
   onWaitlistRequest,
+  onBookingsLoaded,
 }) {
   const [bookings,      setBookings]      = useState([])
   const [loading,       setLoading]       = useState(false)
@@ -61,11 +62,11 @@ export default function TimeSlotPicker({
 
   useEffect(() => {
     resetSelection()
-    if (!resourceId || !date) { setBookings([]); return }
+    if (!resourceId || !date) { setBookings([]); onBookingsLoaded?.([]) ; return }
     setLoading(true)
     bookingService.getByResource(resourceId)
-      .then(r => setBookings(r.data || []))
-      .catch(() => setBookings([]))
+      .then(r => { setBookings(r.data || []); onBookingsLoaded?.(r.data || []) })
+      .catch(() => { setBookings([]); onBookingsLoaded?.([]) })
       .finally(() => setLoading(false))
   }, [resourceId, date])
 
@@ -184,7 +185,7 @@ export default function TimeSlotPicker({
   return (
     <div className="slot-picker">
       {loading ? (
-        <div style={{ padding: '16px 12px', color: '#64748b', fontSize: 14 }}>
+        <div style={{ padding: '16px 12px', color: '#64748b', fontSize: 13 }}>
           Loading slot availability…
         </div>
       ) : (
@@ -204,7 +205,7 @@ export default function TimeSlotPicker({
               <span className="slot-swatch slot-waitlist-swatch" /> Waitlist
             </span>
             {modeHint && (
-              <span style={{ marginLeft: 'auto', fontSize: 13, fontWeight: 500,
+              <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 500,
                 color: mode === 'waitlist' ? '#b45309' : '#2563eb' }}>
                 {modeHint}
               </span>
