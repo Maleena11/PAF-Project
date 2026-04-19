@@ -52,7 +52,12 @@ public class BookingService {
         return bookingRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }
 
-    public List<Booking> getBookingsByResource(Long resourceId) {
+    public List<Booking> getBookingsByResource(Long resourceId, LocalDateTime date) {
+        if (date != null) {
+            LocalDateTime startOfDay = date.toLocalDate().atStartOfDay();
+            LocalDateTime endOfDay = startOfDay.plusDays(1);
+            return bookingRepository.findByResourceIdAndDate(resourceId, startOfDay, endOfDay);
+        }
         return bookingRepository.findByResourceId(resourceId);
     }
 
@@ -216,6 +221,64 @@ public class BookingService {
                 id);
 
         return updated;
+    }
+
+    public Booking cancelOwnBooking(Long bookingId, Long requestingUserId) {
+        Booking booking = getBookingById(bookingId);
+        if (!booking.getUser().getId().equals(requestingUserId)) {
+            throw new IllegalArgumentException("You can only cancel your own bookings");
+        }
+        if (booking.getStatus() != BookingStatus.PENDING && booking.getStatus() != BookingStatus.APPROVED) {
+            throw new IllegalStateException("Only PENDING or APPROVED bookings can be cancelled");
+        }
+        booking.setStatus(BookingStatus.CANCELLED);
+        Booking updated = bookingRepository.save(booking);
+        waitlistService.promoteFromWaitlist(updated);
+        String message = buildStatusMessage(booking.getResource().getName(), BookingStatus.CANCELLED, null);
+        notificationService.createNotification(
+                booking.getUser(), "Booking Cancelled", message,
+                Notification.NotificationType.BOOKING, bookingId);
+        return updated;
+    }
+
+    public Booking updateBooking(Long id, BookingRequestDTO dto) {
+        Booking booking = getBookingById(id);
+        if (!booking.getUser().getId().equals(dto.getUserId())) {
+            throw new IllegalArgumentException("You can only edit your own bookings");
+        }
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new IllegalStateException("Only PENDING bookings can be edited");
+        }
+        if (!dto.getEndTime().isAfter(dto.getStartTime())) {
+            throw new IllegalArgumentException("End time must be after start time");
+        }
+        Resource resource = resourceRepository.findById(dto.getResourceId())
+                .orElseThrow(() -> new ResourceNotFoundException("Resource not found with id: " + dto.getResourceId()));
+        if (dto.getExpectedAttendees() != null && dto.getExpectedAttendees() > resource.getCapacity()) {
+            throw new IllegalArgumentException(
+                    "Expected attendees (" + dto.getExpectedAttendees() + ") exceeds the capacity of '"
+                    + resource.getName() + "' (" + resource.getCapacity() + ")");
+        }
+        if (!bookingRepository.isResourceAvailable(dto.getResourceId(), dto.getStartTime(), dto.getEndTime(), id)) {
+            throw new IllegalStateException("Resource '" + resource.getName() + "' is not available for the requested time");
+        }
+        booking.setResource(resource);
+        booking.setTitle(dto.getTitle());
+        booking.setPurpose(dto.getPurpose());
+        booking.setExpectedAttendees(dto.getExpectedAttendees());
+        booking.setStartTime(dto.getStartTime());
+        booking.setEndTime(dto.getEndTime());
+        booking.setNotes(dto.getNotes());
+        Booking updated = bookingRepository.save(booking);
+        notificationService.createNotification(
+                booking.getUser(), "Booking Updated",
+                "Your booking for '" + resource.getName() + "' has been updated.",
+                Notification.NotificationType.BOOKING, id);
+        return updated;
+    }
+
+    public List<Booking> getBookingsByResourceForDate(Long resourceId, LocalDateTime startOfDay, LocalDateTime endOfDay) {
+        return bookingRepository.findByResourceIdAndDate(resourceId, startOfDay, endOfDay);
     }
 
     public void deleteBooking(Long id) {
