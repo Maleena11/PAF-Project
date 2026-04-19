@@ -8,6 +8,7 @@ import {
 import { format, formatDistanceToNow } from 'date-fns'
 import { useAuth } from '../context/AuthContext'
 import ticketService from '../services/ticketService'
+import userService from '../services/userService'
 import TicketForm from '../components/TicketForm'
 import { BACKEND_URL } from '../services/api'
 
@@ -35,20 +36,41 @@ export default function TicketsPage() {
   const [detailLoading, setDetailLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('')
+  const [showResolveModal, setShowResolveModal] = useState(false)
+  const [resolutionNotes, setResolutionNotes] = useState('')
+  const [showRejectModal, setShowRejectModal] = useState(false)
+  const [rejectReason, setRejectReason] = useState('')
+  const [submittingAction, setSubmittingAction] = useState(false)
+  const [staffUsers, setStaffUsers] = useState([])
+  const [assignModal, setAssignModal] = useState(null)
+  const [selectedStaffId, setSelectedStaffId] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('')
+  const [technicianFilter, setTechnicianFilter] = useState('')
 
-  const isAdmin = user?.role === 'ADMIN' || user?.role === 'STAFF'
+  const isAdmin = user?.role === 'ADMIN'
+  const isStaff = user?.role === 'STAFF'
 
   const load = () => {
     if (!user?.id) return Promise.resolve()
     setLoading(true)
-    const call = isAdmin ? ticketService.getAll() : ticketService.getByUser(user.id)
+    let call
+    if (isAdmin) call = ticketService.getAll()
+    else if (isStaff) call = ticketService.getAssigned(user.id)
+    else call = ticketService.getByUser(user.id)
     return call
       .then(r => setTickets(Array.isArray(r.data) ? r.data : []))
       .catch(() => toast.error('Failed to load tickets'))
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [user])
+  useEffect(() => {
+    load()
+    if (user?.role === 'ADMIN') {
+      userService.getStaff()
+        .then(r => setStaffUsers(Array.isArray(r.data) ? r.data : []))
+        .catch(() => {})
+    }
+  }, [user])
 
   const handleCreate = async (data, file) => {
     try {
@@ -124,10 +146,83 @@ export default function TicketsPage() {
     finally { setPosting(false) }
   }
 
+  const handleStartWork = async (ticketId) => {
+    setSubmittingAction(true)
+    try {
+      const { data } = await ticketService.startWork(ticketId, user.id)
+      toast.success('Work started! Ticket is now In Progress.')
+      setTickets(prev => prev.map(t => t.id === ticketId ? data : t))
+      if (selected?.id === ticketId) setSelected(data)
+    } catch (err) { toast.error(err.message) }
+    finally { setSubmittingAction(false) }
+  }
+
+  const handleResolveSubmit = async () => {
+    if (!resolutionNotes.trim()) { toast.error('Please enter resolution notes'); return }
+    setSubmittingAction(true)
+    try {
+      const { data } = await ticketService.resolve(selected.id, resolutionNotes)
+      toast.success('Ticket resolved successfully!')
+      setResolutionNotes('')
+      setShowResolveModal(false)
+      setTickets(prev => prev.map(t => t.id === selected.id ? data : t))
+      setSelected(data)
+    } catch (err) { toast.error(err.message) }
+    finally { setSubmittingAction(false) }
+  }
+
+  const handleClose = async (ticketId) => {
+    setSubmittingAction(true)
+    try {
+      const { data } = await ticketService.close(ticketId)
+      toast.success('Ticket closed successfully.')
+      setTickets(prev => prev.map(t => t.id === ticketId ? data : t))
+      if (selected?.id === ticketId) setSelected(data)
+    } catch (err) { toast.error(err.message) }
+    finally { setSubmittingAction(false) }
+  }
+
+  const handleRejectSubmit = async () => {
+    if (!rejectReason.trim()) { toast.error('Please enter a rejection reason'); return }
+    setSubmittingAction(true)
+    try {
+      const { data } = await ticketService.reject(selected.id, rejectReason)
+      toast.success('Ticket rejected.')
+      setRejectReason('')
+      setShowRejectModal(false)
+      setTickets(prev => prev.map(t => t.id === selected.id ? data : t))
+      setSelected(data)
+    } catch (err) { toast.error(err.message) }
+    finally { setSubmittingAction(false) }
+  }
+
+  const handleAssignSubmit = async () => {
+    if (!selectedStaffId) { toast.error('Please select a technician'); return }
+    setSubmittingAction(true)
+    try {
+      const { data } = await ticketService.assign(assignModal.id, selectedStaffId)
+      toast.success('Technician assigned successfully!')
+      setAssignModal(null)
+      setSelectedStaffId('')
+      setTickets(prev => prev.map(t => t.id === data.id ? data : t))
+      if (selected?.id === data.id) setSelected(data)
+    } catch (err) { toast.error(err.message) }
+    finally { setSubmittingAction(false) }
+  }
+
+  const isOverdue = (t) => {
+    if (t.status === 'RESOLVED' || t.status === 'CLOSED' || t.status === 'REJECTED') return false
+    const diffDays = (Date.now() - new Date(t.createdAt).getTime()) / (1000 * 60 * 60 * 24)
+    return diffDays > 3
+  }
+
   const displayed = tickets
     .filter(t => filterStatus ? t.status === filterStatus : true)
     .filter(t => priorityFilter ? t.priority === priorityFilter : true)
+    .filter(t => categoryFilter ? t.category === categoryFilter : true)
+    .filter(t => technicianFilter === 'unassigned' ? !t.assignedTo : technicianFilter ? String(t.assignedTo?.id) === String(technicianFilter) : true)
     .filter(t => search ? (
+      String(t.id).includes(search) ||
       t.title.toLowerCase().includes(search.toLowerCase()) ||
       t.description.toLowerCase().includes(search.toLowerCase()) ||
       t.category.toLowerCase().includes(search.toLowerCase()) ||
@@ -150,16 +245,18 @@ export default function TicketsPage() {
         <div>
           <h1>INCIDENT TICKETS</h1>
           <p style={{ color: '#64748b', marginTop: 2 }}>
-            {isAdmin ? 'Manage all incident and maintenance tickets' : 'Report and track your campus incidents'}
+            {isAdmin ? 'Manage all incident and maintenance tickets' : isStaff ? 'Your assigned tickets — manage and resolve them' : 'Report and track your campus incidents'}
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-          <Plus size={16} /> New Ticket
-        </button>
+        {!isStaff && (
+          <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+            <Plus size={16} /> New Ticket
+          </button>
+        )}
       </div>
 
       {/* ── Unified Filter + Stats Bar ── */}
-      {!isAdmin && (
+      {!isAdmin && !isStaff && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10, marginBottom: 24 }}>
           {STATUS_FILTERS.map(s => {
             const count = s.key === '' ? tickets.length : tickets.filter(t => t.status === s.key).length
@@ -191,7 +288,7 @@ export default function TicketsPage() {
       )}
 
       {/* ── Search + Filter Bar ── */}
-      {!isAdmin && (
+      {!isAdmin && !isStaff && (
         <div className="toolbar" style={{ marginBottom: 20 }}>
           <div className="search-box">
             <Search size={15} />
@@ -256,61 +353,300 @@ export default function TicketsPage() {
       {/* ── Content ── */}
       {loading ? (
         <div className="loading-container"><div className="spinner" /></div>
-      ) : isAdmin ? (
-        /* ── Admin: Filter + Table ── */
+      ) : isStaff ? (
+        /* ── Staff/Technician View ── */
         <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-            <Filter size={15} style={{ color: '#94a3b8' }} />
-            {['', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'REJECTED'].map(s => (
-              <button key={s} onClick={() => setFilter(s)} style={{
-                padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: 'pointer',
-                border: filterStatus === s ? '1.5px solid #2563eb' : '1.5px solid #e2e8f0',
-                background: filterStatus === s ? '#dbeafe' : '#fff',
-                color: filterStatus === s ? '#2563eb' : '#64748b', transition: 'all .15s',
-              }}>
-                {s === '' ? 'All' : s.replace('_', ' ')}
+          {/* Staff Stats Bar */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 20 }}>
+            {[
+              { key: '',            label: 'All Assigned', color: '#2563eb', bg: '#dbeafe', border: '#93c5fd', icon: '📋' },
+              { key: 'OPEN',        label: 'Open',         color: '#ea580c', bg: '#fff7ed', border: '#fb923c', icon: '⚠️' },
+              { key: 'IN_PROGRESS', label: 'In Progress',  color: '#7c3aed', bg: '#ede9fe', border: '#c4b5fd', icon: '⚙️' },
+              { key: 'RESOLVED',    label: 'Resolved',     color: '#16a34a', bg: '#dcfce7', border: '#86efac', icon: '✅' },
+              { key: 'CLOSED',      label: 'Closed',       color: '#475569', bg: '#f1f5f9', border: '#94a3b8', icon: '🔒' },
+            ].map(s => {
+              const count = s.key === '' ? tickets.length : tickets.filter(t => t.status === s.key).length
+              const active = filterStatus === s.key
+              return (
+                <button key={s.key} onClick={() => setFilter(s.key)} style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                  gap: 6, padding: '12px 8px', borderRadius: 14, cursor: 'pointer',
+                  border: `2px solid ${active ? s.color : s.border}`,
+                  background: active ? s.color + 'cc' : '#fff',
+                  color: active ? '#fff' : s.color,
+                  boxShadow: active ? `0 6px 18px ${s.color}40` : '0 1px 4px rgba(0,0,0,0.06)',
+                  transition: 'all .18s ease',
+                  transform: active ? 'translateY(-2px)' : 'none',
+                }}
+                onMouseEnter={e => { if (!active) { e.currentTarget.style.background = s.bg; e.currentTarget.style.transform = 'translateY(-2px)' }}}
+                onMouseLeave={e => { if (!active) { e.currentTarget.style.background = '#fff'; e.currentTarget.style.transform = 'none' }}}>
+                  <span style={{ fontSize: 18 }}>{s.icon}</span>
+                  <span style={{ fontSize: 20, fontWeight: 800 }}>{count}</span>
+                  <span style={{ fontSize: 10, fontWeight: 600, opacity: active ? 0.9 : 0.75, textAlign: 'center' }}>{s.label}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Staff Search Bar */}
+          <div className="toolbar" style={{ marginBottom: 20 }}>
+            <div className="search-box">
+              <Search size={15} />
+              <input placeholder="Search assigned tickets by title, category or location…" value={search} onChange={e => setSearch(e.target.value)} />
+              {search && <button className="search-clear-btn" onClick={() => setSearch('')}><X size={13} /></button>}
+            </div>
+            {search && (
+              <button onClick={() => setSearch('')} style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#dbeafe', border: '1px solid #93c5fd', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, color: '#2563eb', cursor: 'pointer', fontFamily: 'inherit' }}>
+                <X size={12} /> Clear
               </button>
-            ))}
-            <span style={{ marginLeft: 'auto', fontSize: 12, color: '#94a3b8' }}>
+            )}
+            <span style={{ marginLeft: 'auto', fontSize: 13, color: '#94a3b8', fontWeight: 500 }}>
               {displayed.length} ticket{displayed.length !== 1 ? 's' : ''}
             </span>
           </div>
-          <div className="card">
+
+          {/* Staff Table */}
+          {displayed.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '60px 0', color: '#94a3b8' }}>
+              <Users size={40} style={{ marginBottom: 12, opacity: 0.4 }} />
+              <p style={{ fontSize: 15, fontWeight: 600, color: '#64748b' }}>No assigned tickets</p>
+              <p style={{ fontSize: 13, marginTop: 4 }}>
+                {filterStatus ? `No ${filterStatus.replace('_', ' ').toLowerCase()} tickets.` : 'You have no tickets assigned to you yet.'}
+              </p>
+            </div>
+          ) : (
+            <div className="card">
+              <div className="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>#</th><th>Title</th><th>Category</th><th>Priority</th>
+                      <th>Submitted By</th><th>Date</th><th>Status</th><th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {displayed.map(t => (
+                      <tr key={t.id} style={{ cursor: 'pointer' }} onClick={() => openDetail(t)}>
+                        <td style={{ color: '#94a3b8' }}>#{t.id}</td>
+                        <td style={{ fontWeight: 500 }}>
+                          {t.imageUrl && <ImageIcon size={13} style={{ marginRight: 4, color: '#94a3b8', verticalAlign: 'middle' }} />}
+                          {t.title}
+                        </td>
+                        <td>{t.category}</td>
+                        <td><span className={`badge ${PRIORITY_CLASS[t.priority] || 'badge-gray'}`}>{t.priority}</span></td>
+                        <td>{t.user?.name}</td>
+                        <td>{format(new Date(t.createdAt), 'MMM d, yyyy')}</td>
+                        <td><span className={`badge ${STATUS_CLASS[t.status] || 'badge-gray'}`}>{t.status.replace('_', ' ')}</span></td>
+                        <td onClick={e => e.stopPropagation()}>
+                          {t.status === 'OPEN' && (
+                            <button disabled={submittingAction} onClick={() => handleStartWork(t.id)} style={{ padding: '5px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: 'none', background: '#dbeafe', color: '#2563eb', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                              ▶ Start Work
+                            </button>
+                          )}
+                          {t.status === 'IN_PROGRESS' && (
+                            <button disabled={submittingAction} onClick={() => { openDetail(t); setShowResolveModal(true) }} style={{ padding: '5px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: 'none', background: '#dcfce7', color: '#16a34a', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                              ✓ Resolve
+                            </button>
+                          )}
+                          {t.status === 'RESOLVED' && (
+                            <button disabled={submittingAction} onClick={() => handleClose(t.id)} style={{ padding: '5px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: 'none', background: '#f1f5f9', color: '#475569', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                              🔒 Close
+                            </button>
+                          )}
+                          {(t.status === 'CLOSED' || t.status === 'REJECTED') && (
+                            <span style={{ fontSize: 12, color: '#94a3b8' }}>—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
+      ) : isAdmin ? (
+        /* ── Admin: Enhanced Dashboard ── */
+        <>
+          {/* ── Summary Stats Cards ── */}
+          {(() => {
+            const overdue = tickets.filter(t => isOverdue(t))
+            const stats = [
+              { label: 'Total Tickets',  value: tickets.length,                                     color: '#2563eb', bg: '#dbeafe', border: '#93c5fd',  icon: '📋' },
+              { label: 'Open',           value: tickets.filter(t => t.status === 'OPEN').length,     color: '#ea580c', bg: '#fff7ed', border: '#fb923c',  icon: '⚠️' },
+              { label: 'In Progress',    value: tickets.filter(t => t.status === 'IN_PROGRESS').length, color: '#7c3aed', bg: '#ede9fe', border: '#c4b5fd', icon: '⚙️' },
+              { label: 'Resolved',       value: tickets.filter(t => t.status === 'RESOLVED').length, color: '#16a34a', bg: '#dcfce7', border: '#86efac',  icon: '✅' },
+              { label: 'Closed',         value: tickets.filter(t => t.status === 'CLOSED').length,   color: '#475569', bg: '#f1f5f9', border: '#94a3b8',  icon: '🔒' },
+              { label: 'Overdue 🔴',     value: overdue.length,                                       color: '#dc2626', bg: '#fee2e2', border: '#fca5a5',  icon: '🚨' },
+            ]
+            return (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12, marginBottom: 24 }}>
+                {stats.map((s, i) => (
+                  <div key={i} style={{ background: '#fff', borderRadius: 16, border: `1.5px solid ${s.border}`, padding: '18px 16px', textAlign: 'center', boxShadow: `0 2px 8px ${s.color}15` }}>
+                    <div style={{ fontSize: 22, marginBottom: 6 }}>{s.icon}</div>
+                    <div style={{ fontSize: 26, fontWeight: 900, color: s.color, lineHeight: 1, marginBottom: 4 }}>{s.value}</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: '#64748b', letterSpacing: '0.04em' }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
+
+          {/* ── Admin Search + Filter Toolbar ── */}
+          <div className="toolbar" style={{ marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
+            <div className="search-box" style={{ minWidth: 220 }}>
+              <Search size={15} />
+              <input placeholder="Search by ID, title, category…" value={search} onChange={e => setSearch(e.target.value)} />
+              {search && <button className="search-clear-btn" onClick={() => setSearch('')}><X size={13} /></button>}
+            </div>
+
+            <div className="toolbar-divider" />
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.06em', textTransform: 'uppercase', paddingLeft: 2 }}>Status</span>
+              <select value={filterStatus} onChange={e => setFilter(e.target.value)} style={{ border: '1.5px solid #e2e8f0', outline: 'none', background: '#f1f5f9', borderRadius: 8, padding: '6px 10px', fontSize: 13, fontWeight: 600, color: filterStatus ? '#0f172a' : '#64748b', cursor: 'pointer', fontFamily: 'inherit' }}>
+                <option value=''>All Statuses</option>
+                <option value='OPEN'>Open</option>
+                <option value='IN_PROGRESS'>In Progress</option>
+                <option value='RESOLVED'>Resolved</option>
+                <option value='CLOSED'>Closed</option>
+                <option value='REJECTED'>Rejected</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.06em', textTransform: 'uppercase', paddingLeft: 2 }}>Priority</span>
+              <select value={priorityFilter} onChange={e => setPriorityFilter(e.target.value)} style={{ border: '1.5px solid #e2e8f0', outline: 'none', background: '#f1f5f9', borderRadius: 8, padding: '6px 10px', fontSize: 13, fontWeight: 600, color: priorityFilter ? '#0f172a' : '#64748b', cursor: 'pointer', fontFamily: 'inherit' }}>
+                <option value=''>All Priorities</option>
+                <option value='LOW'>🟡 Low</option>
+                <option value='MEDIUM'>🟢 Medium</option>
+                <option value='HIGH'>🔴 High</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.06em', textTransform: 'uppercase', paddingLeft: 2 }}>Category</span>
+              <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} style={{ border: '1.5px solid #e2e8f0', outline: 'none', background: '#f1f5f9', borderRadius: 8, padding: '6px 10px', fontSize: 13, fontWeight: 600, color: categoryFilter ? '#0f172a' : '#64748b', cursor: 'pointer', fontFamily: 'inherit' }}>
+                <option value=''>All Categories</option>
+                <option value='MAINTENANCE'>Maintenance</option>
+                <option value='IT'>IT</option>
+                <option value='FACILITIES'>Facilities</option>
+                <option value='SECURITY'>Security</option>
+                <option value='CLEANING'>Cleaning</option>
+                <option value='OTHER'>Other</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.06em', textTransform: 'uppercase', paddingLeft: 2 }}>Technician</span>
+              <select value={technicianFilter} onChange={e => setTechnicianFilter(e.target.value)} style={{ border: '1.5px solid #e2e8f0', outline: 'none', background: '#f1f5f9', borderRadius: 8, padding: '6px 10px', fontSize: 13, fontWeight: 600, color: technicianFilter ? '#0f172a' : '#64748b', cursor: 'pointer', fontFamily: 'inherit' }}>
+                <option value=''>All Technicians</option>
+                <option value='unassigned'>Unassigned</option>
+                {staffUsers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
+
+            {(search || filterStatus || priorityFilter || categoryFilter || technicianFilter) && (
+              <button onClick={() => { setSearch(''); setFilter(''); setPriorityFilter(''); setCategoryFilter(''); setTechnicianFilter('') }}
+                style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#dbeafe', border: '1px solid #93c5fd', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, color: '#2563eb', cursor: 'pointer', fontFamily: 'inherit', alignSelf: 'flex-end' }}>
+                <X size={12} /> Clear Filters
+              </button>
+            )}
+
+            <span style={{ marginLeft: 'auto', fontSize: 13, color: '#94a3b8', fontWeight: 500, alignSelf: 'flex-end', paddingBottom: 2 }}>
+              {displayed.length} ticket{displayed.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+
+          {/* ── Admin Table ── */}
+          <div className="card" style={{ padding: 0, overflow: 'hidden', border: '1px solid #e8edf2' }}>
             <div className="table-wrapper">
               <table>
                 <thead>
                   <tr>
-                    <th>#</th><th>Title</th><th>Category</th><th>Priority</th>
-                    <th>Submitted By</th><th>Date</th><th>Status</th><th>Actions</th>
+                    <th style={{ width: 42 }}>#</th>
+                    <th>Title</th>
+                    <th>Category</th>
+                    <th>Priority</th>
+                    <th>Submitted By</th>
+                    <th>Assigned To</th>
+                    <th>Date</th>
+                    <th>SLA</th>
+                    <th>Status</th>
+                    <th style={{ width: 160 }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {displayed.map(t => (
-                    <tr key={t.id} style={{ cursor: 'pointer' }} onClick={() => openDetail(t)}>
-                      <td style={{ color: '#94a3b8' }}>#{t.id}</td>
-                      <td style={{ fontWeight: 500 }}>
-                        {t.imageUrl && <ImageIcon size={13} style={{ marginRight: 4, color: '#94a3b8', verticalAlign: 'middle' }} />}
-                        {t.title}
-                      </td>
-                      <td>{t.category}</td>
-                      <td><span className={`badge ${PRIORITY_CLASS[t.priority] || 'badge-gray'}`}>{t.priority}</span></td>
-                      <td>{t.user?.name}</td>
-                      <td>{format(new Date(t.createdAt), 'MMM d, yyyy')}</td>
-                      <td><span className={`badge ${STATUS_CLASS[t.status] || 'badge-gray'}`}>{t.status.replace('_', ' ')}</span></td>
-                      <td onClick={e => e.stopPropagation()}>
-                        {t.status !== 'CLOSED' && t.status !== 'REJECTED' && (
-                          <select className="filter-select" style={{ fontSize: 12 }}
-                            value={t.status} onChange={e => handleStatus(t.id, e.target.value)}>
-                            <option value="OPEN">OPEN</option>
-                            <option value="IN_PROGRESS">IN PROGRESS</option>
-                            <option value="RESOLVED">RESOLVED</option>
-                            <option value="CLOSED">CLOSED</option>
-                            <option value="REJECTED">REJECTED</option>
-                          </select>
-                        )}
+                  {displayed.length === 0 ? (
+                    <tr>
+                      <td colSpan={10} style={{ textAlign: 'center', padding: '48px 0', color: '#94a3b8' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                          <Ticket size={32} style={{ opacity: 0.3 }} />
+                          <span style={{ fontSize: 14, fontWeight: 600 }}>No tickets match your filters</span>
+                        </div>
                       </td>
                     </tr>
-                  ))}
+                  ) : displayed.map(t => {
+                    const overdue = isOverdue(t)
+                    const diffDays = Math.floor((Date.now() - new Date(t.createdAt).getTime()) / (1000 * 60 * 60 * 24))
+                    return (
+                      <tr key={t.id}
+                        style={{ cursor: 'pointer', background: overdue ? '#fff8f8' : undefined, transition: 'background .15s' }}
+                        onClick={() => openDetail(t)}
+                        onMouseEnter={e => { if (!overdue) e.currentTarget.style.background = '#f8fafc'; else e.currentTarget.style.background = '#fff1f2' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = overdue ? '#fff8f8' : '' }}
+                      >
+                        <td style={{ color: '#94a3b8', fontWeight: 600 }}>#{t.id}</td>
+                        <td style={{ fontWeight: 600, maxWidth: 200 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            {overdue && <span title="Overdue" style={{ color: '#dc2626', fontSize: 14 }}>🚨</span>}
+                            {t.imageUrl && <ImageIcon size={12} style={{ color: '#94a3b8', flexShrink: 0 }} />}
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>{t.title}</span>
+                          </div>
+                        </td>
+                        <td><span style={{ fontSize: 12, color: '#64748b', background: '#f1f5f9', borderRadius: 6, padding: '2px 8px', fontWeight: 600 }}>{t.category}</span></td>
+                        <td><span className={`badge ${PRIORITY_CLASS[t.priority] || 'badge-gray'}`}>{t.priority}</span></td>
+                        <td style={{ fontSize: 13, color: '#374151' }}>{t.user?.name}</td>
+                        <td>
+                          {t.assignedTo ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                                {t.assignedTo.name?.[0]?.toUpperCase()}
+                              </div>
+                              <span style={{ fontSize: 12, color: '#374151', fontWeight: 500 }}>{t.assignedTo.name}</span>
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }}>Unassigned</span>
+                          )}
+                        </td>
+                        <td style={{ fontSize: 12, color: '#64748b' }}>{format(new Date(t.createdAt), 'MMM d, yyyy')}</td>
+                        <td>
+                          <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: overdue ? '#fee2e2' : diffDays <= 1 ? '#dcfce7' : '#fff7ed', color: overdue ? '#dc2626' : diffDays <= 1 ? '#16a34a' : '#ea580c', border: `1px solid ${overdue ? '#fca5a5' : diffDays <= 1 ? '#86efac' : '#fed7aa'}` }}>
+                            {diffDays === 0 ? 'Today' : diffDays === 1 ? '1d' : `${diffDays}d`}{overdue ? ' ⚠' : ''}
+                          </span>
+                        </td>
+                        <td><span className={`badge ${STATUS_CLASS[t.status] || 'badge-gray'}`}>{t.status.replace('_', ' ')}</span></td>
+                        <td onClick={e => e.stopPropagation()}>
+                          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                            {t.status !== 'CLOSED' && t.status !== 'REJECTED' && (
+                              <button
+                                onClick={() => { setAssignModal(t); setSelectedStaffId(t.assignedTo?.id || '') }}
+                                style={{ padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: 'none', background: '#ede9fe', color: '#7c3aed', whiteSpace: 'nowrap' }}
+                              >
+                                👤 Assign
+                              </button>
+                            )}
+                            <button
+                              onClick={() => openDetail(t)}
+                              style={{ padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: '1px solid #e2e8f0', background: '#fff', color: '#475569', whiteSpace: 'nowrap' }}
+                            >
+                              View
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -390,8 +726,9 @@ export default function TicketsPage() {
                   </div>
                 </div>
                 {/* Action buttons */}
-                <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                  {!isAdmin && (selected.status === 'OPEN' || selected.status === 'REJECTED') && (
+                <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  {/* Student: Edit & Delete */}
+                  {!isAdmin && !isStaff && (selected.status === 'OPEN' || selected.status === 'REJECTED') && (
                     <>
                       <button
                         onClick={() => setIsEditing(true)}
@@ -410,6 +747,38 @@ export default function TicketsPage() {
                         🗑 Delete
                       </button>
                     </>
+                  )}
+                  {/* Staff workflow buttons */}
+                  {isStaff && selected.status === 'OPEN' && (
+                    <button disabled={submittingAction} onClick={() => handleStartWork(selected.id)} style={{ padding: '8px 18px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: 'none', background: 'linear-gradient(135deg, #2563eb, #4f46e5)', color: '#fff', boxShadow: '0 4px 12px rgba(37,99,235,0.3)', transition: 'all .15s' }}>
+                      ▶ Start Work
+                    </button>
+                  )}
+                  {isStaff && selected.status === 'IN_PROGRESS' && (
+                    <button disabled={submittingAction} onClick={() => setShowResolveModal(true)} style={{ padding: '8px 18px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: 'none', background: 'linear-gradient(135deg, #16a34a, #15803d)', color: '#fff', boxShadow: '0 4px 12px rgba(22,163,74,0.3)', transition: 'all .15s' }}>
+                      ✓ Resolve Ticket
+                    </button>
+                  )}
+                  {isStaff && selected.status === 'RESOLVED' && (
+                    <button disabled={submittingAction} onClick={() => handleClose(selected.id)} style={{ padding: '8px 18px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #94a3b8', background: '#f1f5f9', color: '#475569', transition: 'all .15s' }}>
+                      🔒 Close Ticket
+                    </button>
+                  )}
+                  {/* Admin: Assign Technician button */}
+                  {isAdmin && selected.status !== 'CLOSED' && selected.status !== 'REJECTED' && (
+                    <button onClick={() => { setAssignModal(selected); setSelectedStaffId(selected.assignedTo?.id || '') }}
+                      style={{ padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none', background: 'linear-gradient(135deg, #7c3aed, #6366f1)', color: '#fff', boxShadow: '0 4px 12px rgba(124,58,237,0.25)', transition: 'all .15s' }}>
+                      👤 {selected.assignedTo ? 'Reassign' : 'Assign Tech'}
+                    </button>
+                  )}
+                  {/* Admin: Reject button */}
+                  {isAdmin && (selected.status === 'OPEN' || selected.status === 'IN_PROGRESS') && (
+                    <button onClick={() => setShowRejectModal(true)} style={{ padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: '1.5px solid #fca5a5', background: '#fef2f2', color: '#dc2626', transition: 'all .15s' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#fee2e2' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = '#fef2f2' }}
+                    >
+                      ✕ Reject
+                    </button>
                   )}
                   <button
                     onClick={() => setSelected(null)}
@@ -490,8 +859,8 @@ export default function TicketsPage() {
                             onClick={() => window.open(BACKEND_URL + url, '_blank')}
                             style={{ width: '100%', display: 'block', maxHeight: 200, objectFit: 'cover', cursor: 'zoom-in' }}
                           />
-                          {/* Delete X button */}
-                          <button
+                          {/* Delete X button — only for ticket owner or admin */}
+                          {!isStaff && <button
                             onClick={async (e) => {
                               e.stopPropagation()
                               try {
@@ -513,7 +882,7 @@ export default function TicketsPage() {
                             }}
                           >
                             <X size={13} />
-                          </button>
+                          </button>}
                         </div>
                       ))}
                     </div>
@@ -605,6 +974,141 @@ export default function TicketsPage() {
                   )}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Assign Technician Modal ── */}
+      {assignModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 480, padding: '32px', boxShadow: '0 32px 64px -12px rgba(0,0,0,0.35)' }}>
+            {/* Modal header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Users size={22} style={{ color: '#7c3aed' }} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: 0 }}>Assign Technician</h3>
+                <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>Ticket #{assignModal.id} — {assignModal.title}</p>
+              </div>
+            </div>
+
+            {/* Current assignee */}
+            {assignModal.assignedTo && (
+              <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 12, padding: '12px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>
+                  {assignModal.assignedTo.name?.[0]?.toUpperCase()}
+                </div>
+                <div>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Currently Assigned</p>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: '#1e293b', margin: 0 }}>{assignModal.assignedTo.name}</p>
+                </div>
+              </div>
+            )}
+
+            <p style={{ fontSize: 13, color: '#64748b', marginBottom: 10 }}>Select a technician to assign this ticket to:</p>
+
+            {/* Staff dropdown */}
+            {staffUsers.length === 0 ? (
+              <div style={{ background: '#fef9c3', border: '1px solid #fde047', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: '#854d0e' }}>
+                ⚠️ No technicians found. Add staff users in User Management first.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {staffUsers.map(s => (
+                  <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12, border: `2px solid ${String(selectedStaffId) === String(s.id) ? '#7c3aed' : '#e2e8f0'}`, background: String(selectedStaffId) === String(s.id) ? '#f5f3ff' : '#fff', cursor: 'pointer', transition: 'all .15s' }}>
+                    <input type="radio" name="staff" value={s.id} checked={String(selectedStaffId) === String(s.id)} onChange={() => setSelectedStaffId(s.id)} style={{ accentColor: '#7c3aed' }} />
+                    <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                      {s.name?.[0]?.toUpperCase()}
+                    </div>
+                    <div>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', margin: 0 }}>{s.name}</p>
+                      <p style={{ fontSize: 12, color: '#64748b', margin: 0 }}>{s.email}</p>
+                    </div>
+                    {String(selectedStaffId) === String(s.id) && <CheckCircle2 size={18} style={{ color: '#7c3aed', marginLeft: 'auto' }} />}
+                  </label>
+                ))}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 24, justifyContent: 'flex-end' }}>
+              <button onClick={() => { setAssignModal(null); setSelectedStaffId('') }} style={{ padding: '10px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: '1.5px solid #e2e8f0', background: '#fff', color: '#64748b' }}>
+                Cancel
+              </button>
+              <button disabled={submittingAction || !selectedStaffId} onClick={handleAssignSubmit} style={{ padding: '10px 24px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: submittingAction || !selectedStaffId ? 'not-allowed' : 'pointer', border: 'none', background: submittingAction || !selectedStaffId ? '#e2e8f0' : 'linear-gradient(135deg, #7c3aed, #6366f1)', color: submittingAction || !selectedStaffId ? '#94a3b8' : '#fff', boxShadow: submittingAction || !selectedStaffId ? 'none' : '0 4px 12px rgba(124,58,237,0.3)' }}>
+                {submittingAction ? 'Assigning…' : '👤 Assign Technician'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Resolve Ticket Modal ── */}
+      {showResolveModal && selected && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 500, padding: '32px', boxShadow: '0 32px 64px -12px rgba(0,0,0,0.35)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CheckCircle2 size={22} style={{ color: '#16a34a' }} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: 0 }}>Resolve Ticket #{selected.id}</h3>
+                <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>{selected.title}</p>
+              </div>
+            </div>
+            <p style={{ fontSize: 13, color: '#64748b', margin: '16px 0 8px' }}>Provide resolution notes describing what was done to fix this issue:</p>
+            <textarea
+              rows={4}
+              placeholder="Describe the resolution steps taken…"
+              value={resolutionNotes}
+              onChange={e => setResolutionNotes(e.target.value)}
+              style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1.5px solid #e2e8f0', fontSize: 13, color: '#334155', background: '#f8fafc', resize: 'vertical', outline: 'none', fontFamily: 'inherit', lineHeight: 1.6, boxSizing: 'border-box' }}
+              onFocus={e => { e.target.style.borderColor = '#16a34a'; e.target.style.boxShadow = '0 0 0 3px rgba(22,163,74,0.1)'; e.target.style.background = '#fff' }}
+              onBlur={e => { e.target.style.borderColor = '#e2e8f0'; e.target.style.boxShadow = 'none'; e.target.style.background = '#f8fafc' }}
+            />
+            <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
+              <button onClick={() => { setShowResolveModal(false); setResolutionNotes('') }} style={{ padding: '10px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: '1.5px solid #e2e8f0', background: '#fff', color: '#64748b' }}>
+                Cancel
+              </button>
+              <button disabled={submittingAction || !resolutionNotes.trim()} onClick={handleResolveSubmit} style={{ padding: '10px 24px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: submittingAction || !resolutionNotes.trim() ? 'not-allowed' : 'pointer', border: 'none', background: submittingAction || !resolutionNotes.trim() ? '#e2e8f0' : 'linear-gradient(135deg, #16a34a, #15803d)', color: submittingAction || !resolutionNotes.trim() ? '#94a3b8' : '#fff', boxShadow: submittingAction || !resolutionNotes.trim() ? 'none' : '0 4px 12px rgba(22,163,74,0.3)' }}>
+                {submittingAction ? 'Resolving…' : '✓ Mark as Resolved'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Reject Ticket Modal ── */}
+      {showRejectModal && selected && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 500, padding: '32px', boxShadow: '0 32px 64px -12px rgba(0,0,0,0.35)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <XCircle size={22} style={{ color: '#dc2626' }} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: 0 }}>Reject Ticket #{selected.id}</h3>
+                <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>{selected.title}</p>
+              </div>
+            </div>
+            <p style={{ fontSize: 13, color: '#64748b', margin: '16px 0 8px' }}>Provide a reason for rejecting this ticket. The submitter will be notified.</p>
+            <textarea
+              rows={3}
+              placeholder="Reason for rejection…"
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1.5px solid #e2e8f0', fontSize: 13, color: '#334155', background: '#f8fafc', resize: 'vertical', outline: 'none', fontFamily: 'inherit', lineHeight: 1.6, boxSizing: 'border-box' }}
+              onFocus={e => { e.target.style.borderColor = '#dc2626'; e.target.style.boxShadow = '0 0 0 3px rgba(220,38,38,0.1)'; e.target.style.background = '#fff' }}
+              onBlur={e => { e.target.style.borderColor = '#e2e8f0'; e.target.style.boxShadow = 'none'; e.target.style.background = '#f8fafc' }}
+            />
+            <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
+              <button onClick={() => { setShowRejectModal(false); setRejectReason('') }} style={{ padding: '10px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: '1.5px solid #e2e8f0', background: '#fff', color: '#64748b' }}>
+                Cancel
+              </button>
+              <button disabled={submittingAction || !rejectReason.trim()} onClick={handleRejectSubmit} style={{ padding: '10px 24px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: submittingAction || !rejectReason.trim() ? 'not-allowed' : 'pointer', border: 'none', background: submittingAction || !rejectReason.trim() ? '#e2e8f0' : 'linear-gradient(135deg, #dc2626, #b91c1c)', color: submittingAction || !rejectReason.trim() ? '#94a3b8' : '#fff', boxShadow: submittingAction || !rejectReason.trim() ? 'none' : '0 4px 12px rgba(220,38,38,0.3)' }}>
+                {submittingAction ? 'Rejecting…' : '✕ Reject Ticket'}
+              </button>
             </div>
           </div>
         </div>
