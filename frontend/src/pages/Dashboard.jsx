@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Building2, CalendarCheck, Ticket, CheckCircle, Clock, Users, AlertCircle, X, CalendarPlus, MessageSquarePlus, Search, Bell, MapPin, RotateCcw } from 'lucide-react'
+import { Building2, CalendarCheck, Ticket, CheckCircle, Clock, Users, AlertCircle, X, CalendarPlus, MessageSquarePlus, Search, Bell, MapPin, RotateCcw, Zap, ChevronRight } from 'lucide-react'
 import BookingForm from '../components/BookingForm'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -11,6 +11,8 @@ import StatCard from '../components/StatCard'
 import BookingApprovalQueue from '../components/BookingApprovalQueue'
 import RecentTicketsAdmin from '../components/RecentTicketsAdmin'
 import ResourceUtilizationSummary from '../components/ResourceUtilizationSummary'
+import RoleDistributionCard from '../components/RoleDistributionCard'
+import AuthProviderCard from '../components/AuthProviderCard'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 
@@ -42,6 +44,8 @@ export default function Dashboard() {
   const [bookings, setBookings] = useState([])
   const [tickets, setTickets] = useState([])
   const [userCount, setUserCount] = useState(null)
+  const [userRoles, setUserRoles] = useState({ STUDENT: 0, STAFF: 0, ADMIN: 0 })
+  const [userProviders, setUserProviders] = useState({ google: 0, local: 0 })
   const [loading, setLoading] = useState(true)
   const [errors, setErrors] = useState({})
   const [reBooking, setReBooking] = useState(null) // booking to prefill for rebook
@@ -49,7 +53,11 @@ export default function Dashboard() {
   const [adminTab, setAdminTab] = useState('overview')
 
   const isAdmin = user?.role === 'ADMIN'
+<<<<<<< Updated upstream
   const isStaff = user?.role === 'STAFF' || isAdmin
+=======
+  const isStaff = user?.role === 'STAFF'
+>>>>>>> Stashed changes
 
   // Tick every second for the countdown — only for students
   useEffect(() => {
@@ -107,8 +115,21 @@ export default function Dashboard() {
 
     const loadUsers = isAdmin
       ? api.get('/auth/users')
-          .then(r => setUserCount(Array.isArray(r.data) ? r.data.length : 0))
-          .catch(() => setUserCount(0))
+          .then(r => {
+            const users = Array.isArray(r.data) ? r.data : []
+            setUserCount(users.length)
+            const roles = { STUDENT: 0, STAFF: 0, ADMIN: 0 }
+            const providers = { google: 0, local: 0 }
+            users.forEach(u => {
+              if (u.role && roles[u.role] !== undefined) roles[u.role]++
+              const prov = u.provider?.toLowerCase()
+              if (prov === 'google') providers.google++
+              else providers.local++
+            })
+            setUserRoles(roles)
+            setUserProviders(providers)
+          })
+          .catch(() => { setUserCount(0); setUserRoles({ STUDENT: 0, STAFF: 0, ADMIN: 0 }); setUserProviders({ google: 0, local: 0 }) })
       : Promise.resolve()
 
     Promise.all([loadResources, loadBookings, loadTickets, loadUsers])
