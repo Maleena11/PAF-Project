@@ -586,35 +586,6 @@ tr:hover td { background: #f8fafc; }
 .notif-item:hover .notif-delete-btn { opacity: 1; }
 .notif-delete-btn:hover { color: var(--danger) !important; }
 
-/* ── Notification Preferences ───────────── */
-.notif-prefs-panel {
-  background: #f8fafc; border: 1px solid var(--border); border-radius: 10px;
-  padding: 16px 20px; margin-bottom: 16px;
-}
-.notif-prefs-header {
-  display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;
-}
-.notif-prefs-desc { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
-.notif-prefs-list { display: flex; flex-direction: column; gap: 10px; }
-.notif-pref-row {
-  display: flex; align-items: center; justify-content: space-between;
-  background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px;
-}
-.notif-pref-info { display: flex; align-items: center; gap: 12px; }
-.notif-toggle-btn {
-  position: relative; width: 42px; height: 24px; border-radius: 12px; border: none;
-  cursor: pointer; transition: background .2s; flex-shrink: 0; padding: 0;
-}
-.notif-toggle-btn.on  { background: var(--primary); }
-.notif-toggle-btn.off { background: #cbd5e1; }
-.notif-toggle-btn:disabled { opacity: .6; cursor: not-allowed; }
-.notif-toggle-knob {
-  position: absolute; top: 3px; width: 18px; height: 18px;
-  background: #fff; border-radius: 50%; transition: left .2s; display: block;
-}
-.notif-toggle-btn.on  .notif-toggle-knob { left: 21px; }
-.notif-toggle-btn.off .notif-toggle-knob { left: 3px; }
-
 /* Spinning refresh icon */
 .spin-icon { animation: spin .6s linear infinite; }
 
@@ -931,9 +902,10 @@ tr:hover td { background: #f8fafc; }
 }
 
 /* ── Scrollbar ───────────────────────────── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 6px; }
+::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: #64748b; }
 
 /* ══════════════════════════════════════════
    BOOKINGS PAGE — Enhanced Layout

@@ -112,10 +112,24 @@ public class TicketService {
         return updated;
     }
 
-    public Ticket setImageUrl(Long id, String imageUrl) {
+    public Ticket setImageUrl(Long id, String imageUrl, int slot) {
         Ticket ticket = getTicketById(id);
-        ticket.setImageUrl(imageUrl);
+        if (slot == 2) ticket.setImageUrl2(imageUrl);
+        else if (slot == 3) ticket.setImageUrl3(imageUrl);
+        else ticket.setImageUrl(imageUrl);
         return ticketRepository.save(ticket);
+    }
+
+    public Ticket removeImageUrl(Long id, int slot) {
+        Ticket ticket = getTicketById(id);
+        if (slot == 2) ticket.setImageUrl2(null);
+        else if (slot == 3) ticket.setImageUrl3(null);
+        else ticket.setImageUrl(null);
+        return ticketRepository.save(ticket);
+    }
+
+    public List<Ticket> getTicketsAssignedTo(Long userId) {
+        return ticketRepository.findByAssignedToId(userId);
     }
 
     public Ticket assignTicket(Long ticketId, Long assigneeId) {
@@ -123,8 +137,77 @@ public class TicketService {
         User assignee = userRepository.findById(assigneeId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + assigneeId));
         ticket.setAssignedTo(assignee);
+        Ticket updated = ticketRepository.save(ticket);
+
+        notificationService.createNotification(assignee,
+                "Ticket Assigned to You",
+                "Ticket #" + ticketId + " \"" + ticket.getTitle() + "\" has been assigned to you.",
+                NotificationType.TICKET, ticketId);
+
+        notificationService.createNotification(ticket.getUser(),
+                "Technician Assigned",
+                assignee.getName() + " has been assigned to your ticket #" + ticketId + ".",
+                NotificationType.TICKET, ticketId);
+
+        return updated;
+    }
+
+    public Ticket startWork(Long ticketId, Long staffId) {
+        Ticket ticket = getTicketById(ticketId);
         ticket.setStatus(TicketStatus.IN_PROGRESS);
-        return ticketRepository.save(ticket);
+        if (ticket.getFirstResponseAt() == null) {
+            ticket.setFirstResponseAt(LocalDateTime.now());
+        }
+        Ticket updated = ticketRepository.save(ticket);
+
+        notificationService.createNotification(ticket.getUser(),
+                "Work Started on Ticket #" + ticketId,
+                "A technician has started working on your ticket \"" + ticket.getTitle() + "\".",
+                NotificationType.TICKET, ticketId);
+
+        return updated;
+    }
+
+    public Ticket resolveTicket(Long ticketId, String resolutionNotes) {
+        Ticket ticket = getTicketById(ticketId);
+        ticket.setStatus(TicketStatus.RESOLVED);
+        ticket.setResolutionNotes(resolutionNotes);
+        ticket.setResolvedAt(LocalDateTime.now());
+        Ticket updated = ticketRepository.save(ticket);
+
+        notificationService.createNotification(ticket.getUser(),
+                "Ticket #" + ticketId + " Resolved",
+                "Your ticket \"" + ticket.getTitle() + "\" has been resolved. Notes: " + resolutionNotes,
+                NotificationType.TICKET, ticketId);
+
+        return updated;
+    }
+
+    public Ticket closeTicket(Long ticketId) {
+        Ticket ticket = getTicketById(ticketId);
+        ticket.setStatus(TicketStatus.CLOSED);
+        Ticket updated = ticketRepository.save(ticket);
+
+        notificationService.createNotification(ticket.getUser(),
+                "Ticket #" + ticketId + " Closed",
+                "Your ticket \"" + ticket.getTitle() + "\" has been closed.",
+                NotificationType.TICKET, ticketId);
+
+        return updated;
+    }
+
+    public Ticket rejectTicket(Long ticketId, String reason) {
+        Ticket ticket = getTicketById(ticketId);
+        ticket.setStatus(TicketStatus.REJECTED);
+        ticket.setRejectionReason(reason);
+        Ticket updated = ticketRepository.save(ticket);
+
+        notificationService.createNotification(ticket.getUser(),
+                "Ticket #" + ticketId + " Rejected",
+                "Your ticket \"" + ticket.getTitle() + "\" was rejected. Reason: " + reason,
+                NotificationType.TICKET, ticketId);
+
+        return updated;
     }
 
     public Comment addComment(Long ticketId, Long userId, String content) {

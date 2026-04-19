@@ -69,7 +69,7 @@ export default function TicketForm({ onSubmit, onCancel, initialData }) {
 
     setSubmitting(true)
     try {
-      await onSubmit({ ...form, userId: user.id }, files[0] || null)
+      await onSubmit({ ...form, userId: user.id }, files.length > 0 ? files : null)
     } finally {
       setSubmitting(false)
     }

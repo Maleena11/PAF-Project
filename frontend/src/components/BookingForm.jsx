@@ -11,6 +11,7 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null }) 
   const [availability, setAvailability] = useState(null) // null | true | false
   const [checking, setChecking] = useState(false)
   const [selectedResource, setSelectedResource] = useState(null)
+  const [resourceBookings, setResourceBookings] = useState([])
 
   // When set, the form is in waitlist mode for this { startTime, endTime }
   const [waitlistSlot, setWaitlistSlot] = useState(null)
@@ -91,6 +92,39 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null }) 
     return count
   }, [form.startTime, form.recurrenceRule, form.recurrenceEndDate])
 
+  // Next free slot suggestion when availability === false
+  const nextFreeSlot = useMemo(() => {
+    if (availability !== false || !form.startTime || !form.endTime || !form.date) return null
+
+    const dateStr = form.date
+    const slots = []
+    for (let h = 7; h < 22; h++) {
+      for (let m = 0; m < 60; m += 30) {
+        const start = new Date(`${dateStr}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`)
+        const end   = new Date(start.getTime() + 30 * 60 * 1000)
+        slots.push({ start, end })
+      }
+    }
+
+    const duration       = new Date(form.endTime) - new Date(form.startTime)
+    const numSlots       = Math.max(1, Math.round(duration / (30 * 60 * 1000)))
+    const selectedEnd    = new Date(form.endTime)
+    const activeBookings = resourceBookings.filter(
+      b => b.status !== 'CANCELLED' && b.status !== 'REJECTED'
+    )
+
+    const isFree = (slot) =>
+      !activeBookings.some(b => new Date(b.startTime) < slot.end && new Date(b.endTime) > slot.start)
+
+    for (let i = 0; i <= slots.length - numSlots; i++) {
+      if (slots[i].start < selectedEnd) continue
+      if (Array.from({ length: numSlots }, (_, j) => slots[i + j]).every(isFree)) {
+        return { start: slots[i].start, end: slots[i + numSlots - 1].end }
+      }
+    }
+    return null
+  }, [availability, form.startTime, form.endTime, form.date, resourceBookings])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
 
@@ -127,12 +161,16 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null }) 
     }
   }
 
+  const pad = (n) => String(n).padStart(2, '0')
+
   const fmtSlot = (dt) => {
     if (!dt) return ''
     const d = new Date(dt)
     return `${pad(d.getHours())}:${pad(d.getMinutes())}`
   }
-  const pad = (n) => String(n).padStart(2, '0')
+
+  const toInputDatetime = (date) =>
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 
   return (
     <form onSubmit={handleSubmit}>
@@ -239,6 +277,7 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null }) 
             endTime={form.endTime}
             onSelect={handleSlotSelect}
             onWaitlistRequest={handleWaitlistRequest}
+            onBookingsLoaded={setResourceBookings}
           />
         </div>
       )}
@@ -269,8 +308,44 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null }) 
       {!waitlistSlot && form.resourceId && form.startTime && form.endTime && (
         <div style={{ marginBottom: 12, fontSize: 13, fontWeight: 500 }}>
           {checking && <span style={{ color: '#64748b' }}>⏳ Confirming availability…</span>}
-          {!checking && availability === true  && <span style={{ color: '#16a34a' }}>✓ Slot confirmed available</span>}
-          {!checking && availability === false && <span style={{ color: '#dc2626' }}>✗ Slot no longer available — please choose another</span>}
+          {!checking && availability === true && (
+            <span style={{ color: '#16a34a' }}>✓ Slot confirmed available</span>
+          )}
+          {!checking && availability === false && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span style={{ color: '#dc2626' }}>✗ Slot no longer available — please choose another</span>
+              {nextFreeSlot && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  background: '#f0fdf4', border: '1px solid #bbf7d0',
+                  borderRadius: 8, padding: '8px 12px',
+                }}>
+                  <span style={{ color: '#15803d' }}>
+                    Next available: <strong>{fmtSlot(nextFreeSlot.start)} – {fmtSlot(nextFreeSlot.end)}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleSlotSelect(
+                      toInputDatetime(nextFreeSlot.start),
+                      toInputDatetime(nextFreeSlot.end),
+                    )}
+                    style={{
+                      marginLeft: 'auto', fontSize: 12, fontWeight: 600,
+                      padding: '4px 12px', borderRadius: 6, cursor: 'pointer',
+                      background: '#16a34a', color: '#fff', border: 'none',
+                    }}
+                  >
+                    Use this slot →
+                  </button>
+                </div>
+              )}
+              {!nextFreeSlot && (
+                <span style={{ color: '#64748b', fontWeight: 400 }}>
+                  No free slots remaining today for this resource.
+                </span>
+              )}
+            </div>
+          )}
         </div>
       )}
 

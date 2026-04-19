@@ -64,7 +64,7 @@ export default function BookingCalendar({ bookings, onSelectBooking }) {
       {/* ── Month navigation ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <button className="btn btn-secondary btn-sm" onClick={() => setCurrent(subMonths(current, 1))}>← Prev</button>
-        <h3 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: '#1e293b' }}>
+        <h3 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#1e293b' }}>
           {format(current, 'MMMM yyyy')}
         </h3>
         <button className="btn btn-secondary btn-sm" onClick={() => setCurrent(addMonths(current, 1))}>Next →</button>
@@ -74,7 +74,7 @@ export default function BookingCalendar({ bookings, onSelectBooking }) {
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
         {Object.entries(STATUS_COLOR).map(([status, c]) => (
           <span key={status} style={{
-            fontSize: 11, fontWeight: 600, padding: '2px 8px',
+            fontSize: 12, fontWeight: 600, padding: '3px 10px',
             borderRadius: 4, background: c.bg, color: c.text, border: `1px solid ${c.border}`
           }}>
             {status}
@@ -89,7 +89,7 @@ export default function BookingCalendar({ bookings, onSelectBooking }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: '#f8fafc' }}>
           {DAY_LABELS.map(d => (
             <div key={d} style={{
-              padding: '8px 0', textAlign: 'center', fontSize: 12,
+              padding: '8px 0', textAlign: 'center', fontSize: 13,
               fontWeight: 700, color: '#64748b', borderBottom: '1px solid #e2e8f0'
             }}>
               {d}
@@ -117,7 +117,7 @@ export default function BookingCalendar({ bookings, onSelectBooking }) {
                   {/* Day number */}
                   <div style={{ marginBottom: 4, textAlign: 'right' }}>
                     <span style={{
-                      fontSize: 12, fontWeight: todayCell ? 700 : 400,
+                      fontSize: 13, fontWeight: todayCell ? 700 : 400,
                       color: todayCell ? '#fff' : inMonth ? '#334155' : '#cbd5e1',
                       background: todayCell ? '#3b82f6' : 'transparent',
                       borderRadius: '50%', padding: '2px 6px',
@@ -135,7 +135,7 @@ export default function BookingCalendar({ bookings, onSelectBooking }) {
                         onClick={() => onSelectBooking(b)}
                         title={`${b.title} — ${b.resource?.name}`}
                         style={{
-                          fontSize: 10, fontWeight: 600, padding: '2px 5px',
+                          fontSize: 11, fontWeight: 600, padding: '3px 6px',
                           borderRadius: 3, marginBottom: 2, cursor: 'pointer',
                           background: c.bg, color: c.text,
                           border: `1px solid ${c.border}`,
@@ -147,7 +147,7 @@ export default function BookingCalendar({ bookings, onSelectBooking }) {
                     )
                   })}
                   {dayBkgs.length > 3 && (
-                    <div style={{ fontSize: 10, color: '#64748b', paddingLeft: 4 }}>
+                    <div style={{ fontSize: 11, color: '#64748b', paddingLeft: 4 }}>
                       +{dayBkgs.length - 3} more
                     </div>
                   )}
