@@ -6,7 +6,7 @@ import { BACKEND_URL } from '../services/api'
 
 const resolveImageUrl = (url) => {
   if (!url) return null
-  if (url.startsWith('data:') || url.startsWith('http')) return url
+  if (url.startsWith('http')) return url
   return BACKEND_URL + url
 }
 

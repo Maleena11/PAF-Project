@@ -80,10 +80,10 @@ export default function BookingApprovalQueue({ onUpdate }) {
               <Clock size={18} color="#d97706" />
             </div>
             <div>
-              <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#1e293b' }}>
+              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1e293b' }}>
                 Pending Approvals
               </h2>
-              <p style={{ margin: 0, fontSize: 12, color: '#92400e' }}>
+              <p style={{ margin: 0, fontSize: 13, color: '#92400e' }}>
                 {loading ? '…' : `${bookings.length} booking${bookings.length !== 1 ? 's' : ''} awaiting review`}
               </p>
             </div>
@@ -109,12 +109,12 @@ export default function BookingApprovalQueue({ onUpdate }) {
         ) : bookings.length === 0 ? (
           <div style={{ padding: '36px 24px', textAlign: 'center' }}>
             <CheckCircle size={38} color="#86efac" style={{ marginBottom: 10 }} />
-            <div style={{ fontWeight: 600, color: '#374151', fontSize: 14 }}>All caught up!</div>
-            <div style={{ color: '#94a3b8', fontSize: 13, marginTop: 4 }}>No bookings waiting for approval.</div>
+            <div style={{ fontWeight: 600, color: '#374151', fontSize: 15 }}>All caught up!</div>
+            <div style={{ color: '#94a3b8', fontSize: 14, marginTop: 4 }}>No bookings waiting for approval.</div>
           </div>
         ) : (
           <div className="table-wrapper" style={{ margin: 0 }}>
-            <table style={{ fontSize: 13 }}>
+            <table style={{ fontSize: 14 }}>
               <thead>
                 <tr>
                   <th>#</th>
@@ -137,13 +137,13 @@ export default function BookingApprovalQueue({ onUpdate }) {
                       {/* User */}
                       <td>
                         <div style={{ fontWeight: 600, color: '#1e293b' }}>{b.user?.name ?? '—'}</div>
-                        <div style={{ fontSize: 11, color: '#94a3b8' }}>{b.user?.email}</div>
+                        <div style={{ fontSize: 12, color: '#94a3b8' }}>{b.user?.email}</div>
                       </td>
 
                       {/* Resource */}
                       <td>
                         <div style={{ fontWeight: 500 }}>{b.resource?.name ?? '—'}</div>
-                        <div style={{ fontSize: 11, color: '#94a3b8' }}>{b.resource?.type}</div>
+                        <div style={{ fontSize: 12, color: '#94a3b8' }}>{b.resource?.type}</div>
                       </td>
 
                       {/* Purpose (truncated) */}
@@ -164,7 +164,7 @@ export default function BookingApprovalQueue({ onUpdate }) {
                         <div style={{ fontWeight: 500 }}>
                           {format(new Date(b.startTime), 'MMM d, yyyy')}
                         </div>
-                        <div style={{ fontSize: 11, color: '#64748b' }}>
+                        <div style={{ fontSize: 12, color: '#64748b' }}>
                           {format(new Date(b.startTime), 'HH:mm')} – {format(new Date(b.endTime), 'HH:mm')}
                         </div>
                       </td>
@@ -229,7 +229,7 @@ export default function BookingApprovalQueue({ onUpdate }) {
         <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && setRejectTarget(null)}>
           <div className="modal" style={{ maxWidth: 420 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <h2 style={{ margin: 0, fontSize: 17 }}>Reject Booking #{rejectTarget}</h2>
+              <h2 style={{ margin: 0, fontSize: 18 }}>Reject Booking #{rejectTarget}</h2>
               <button
                 className="btn btn-sm btn-secondary"
                 onClick={() => setRejectTarget(null)}
@@ -238,7 +238,7 @@ export default function BookingApprovalQueue({ onUpdate }) {
               </button>
             </div>
 
-            <p style={{ fontSize: 13, color: '#64748b', marginBottom: 14 }}>
+            <p style={{ fontSize: 14, color: '#64748b', marginBottom: 14 }}>
               Provide a reason — the requester will be notified.
             </p>
 
