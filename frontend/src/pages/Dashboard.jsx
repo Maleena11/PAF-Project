@@ -49,6 +49,7 @@ export default function Dashboard() {
   const [adminTab, setAdminTab] = useState('overview')
 
   const isAdmin = user?.role === 'ADMIN'
+  const isStaff = user?.role === 'STAFF' || isAdmin
 
   // Tick every second for the countdown — only for students
   useEffect(() => {
