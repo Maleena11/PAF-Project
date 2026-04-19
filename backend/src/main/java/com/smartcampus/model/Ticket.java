@@ -52,6 +52,12 @@ public class Ticket {
     @Column(name = "image_url")
     private String imageUrl;
 
+    @Column(name = "image_url2")
+    private String imageUrl2;
+
+    @Column(name = "image_url3")
+    private String imageUrl3;
+
     @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Comment> comments = new ArrayList<>();
@@ -64,6 +70,15 @@ public class Ticket {
 
     @Column(name = "resolved_at")
     private LocalDateTime resolvedAt;
+
+    @Column(name = "first_response_at")
+    private LocalDateTime firstResponseAt;
+
+    @Column(name = "resolution_notes", columnDefinition = "TEXT")
+    private String resolutionNotes;
+
+    @Column(name = "rejection_reason", columnDefinition = "TEXT")
+    private String rejectionReason;
 
     @Column(name = "location")
     private String location;
@@ -91,6 +106,6 @@ public class Ticket {
     }
 
     public enum TicketStatus {
-        OPEN, IN_PROGRESS, RESOLVED, CLOSED
+        OPEN, IN_PROGRESS, RESOLVED, CLOSED, REJECTED
     }
 }

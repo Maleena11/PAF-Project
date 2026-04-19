@@ -6,15 +6,20 @@
 INSERT IGNORE INTO users (id, name, email, role, provider, provider_id, created_at)
 VALUES
   (1, 'Admin User',    'it23616592@my.sliit.lk', 'ADMIN',   'local',  'local-1', CURRENT_TIMESTAMP),
-  (2, 'Alice Johnson', 'it23657014@my.sliit.lk', 'STUDENT', 'local',  'local-2', CURRENT_TIMESTAMP),
-  (3, 'Bob Smith',     'it23642164@my.sliit.lk', 'STAFF',   'local',  'local-3', CURRENT_TIMESTAMP),
-  (4, 'Carol White',   'it23665866@my.sliit.lk', 'STUDENT', 'local',  'local-4', CURRENT_TIMESTAMP);
+  (2, 'Kumudi Tharumila',    'it23657014@my.sliit.lk', 'STUDENT', 'local',  'local-2', CURRENT_TIMESTAMP),
+  (3, 'Maleena Karunarathna', 'it23642164@my.sliit.lk', 'STAFF',   'local',  'local-3', CURRENT_TIMESTAMP),
+  (4, 'Thamali Ekanayaka',  'it23665866@my.sliit.lk', 'STUDENT', 'local',  'local-4', CURRENT_TIMESTAMP);
 
 -- Update emails if old seed data already exists
 UPDATE users SET email = 'it23616592@my.sliit.lk' WHERE id = 1 AND email = 'admin@campus.edu';
 UPDATE users SET email = 'it23657014@my.sliit.lk' WHERE id = 2 AND email = 'alice@campus.edu';
 UPDATE users SET email = 'it23642164@my.sliit.lk' WHERE id = 3 AND email = 'bob@campus.edu';
 UPDATE users SET email = 'it23665866@my.sliit.lk' WHERE id = 4 AND email = 'carol@campus.edu';
+
+-- Update names
+UPDATE users SET name = 'Maleena Karunarathna' WHERE id = 3;
+UPDATE users SET name = 'Kumudi Tharumila'     WHERE id = 2;
+UPDATE users SET name = 'Thamali Ekanayaka'    WHERE id = 4;
 
 -- Resources
 INSERT IGNORE INTO resources (id, name, type, location, capacity, status, description, created_at)
@@ -37,7 +42,6 @@ VALUES
 INSERT IGNORE INTO tickets (id, title, description, category, priority, status, user_id, created_at)
 VALUES
   (1, 'Projector not working in Hall A',  'The projector in Lecture Hall A fails to display HDMI input', 'MAINTENANCE', 'HIGH',   'OPEN',        1, CURRENT_TIMESTAMP),
-  (2, 'AC broken in Lab 1',               'Air conditioning unit making loud noise and not cooling',      'MAINTENANCE', 'MEDIUM', 'IN_PROGRESS', 2, CURRENT_TIMESTAMP),
   (3, 'WiFi connectivity issue',          'No WiFi signal on the third floor of Block C',                 'IT',          'HIGH',   'OPEN',        3, CURRENT_TIMESTAMP),
   (4, 'Broken chairs in Meeting Room 101','Three chairs have broken legs and are unusable',               'FACILITIES',  'LOW',    'RESOLVED',    4, CURRENT_TIMESTAMP);
 
@@ -48,11 +52,10 @@ VALUES
   (2, 3, 'Booking Pending',    'Your Web Dev Workshop booking is under review.',                 'BOOKING',  false, CURRENT_TIMESTAMP),
   (3, 4, 'Booking Approved',   'Your Group Project Meeting booking has been approved.',          'BOOKING',  true,  CURRENT_TIMESTAMP),
   (4, 1, 'New Ticket',         'A new HIGH priority maintenance ticket has been submitted.',     'TICKET',   false, CURRENT_TIMESTAMP),
-  (5, 2, 'Ticket Update',      'Ticket #2 (AC broken) is now IN PROGRESS.',                     'TICKET',   false, CURRENT_TIMESTAMP);
+  (4, 1, 'New Ticket',         'A new HIGH priority maintenance ticket has been submitted.',     'TICKET',   false, CURRENT_TIMESTAMP);
 
 -- Comments
 INSERT IGNORE INTO comments (id, ticket_id, user_id, content, created_at)
 VALUES
   (1, 1, 1, 'Technician has been notified. Will inspect tomorrow morning.',  CURRENT_TIMESTAMP),
-  (2, 2, 3, 'The AC unit compressor is faulty. Parts ordered — 3 day ETA.',  CURRENT_TIMESTAMP),
   (3, 3, 1, 'IT team is investigating. Please use ethernet in the meantime.', CURRENT_TIMESTAMP);

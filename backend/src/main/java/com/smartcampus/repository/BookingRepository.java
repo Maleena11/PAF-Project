@@ -66,4 +66,17 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("resourceId") Long resourceId,
             @Param("startOfDay") LocalDateTime startOfDay,
             @Param("endOfDay") LocalDateTime endOfDay);
+
+    // Analytics: count active bookings grouped by hour-of-day (0–23)
+    @Query("SELECT FUNCTION('HOUR', b.startTime), COUNT(b) FROM Booking b " +
+           "WHERE b.status NOT IN ('CANCELLED', 'REJECTED') " +
+           "GROUP BY FUNCTION('HOUR', b.startTime) ORDER BY FUNCTION('HOUR', b.startTime)")
+    List<Object[]> countBookingsByHour();
+
+    // Analytics: top resources by booking count (active bookings only)
+    @Query("SELECT b.resource.id, b.resource.name, b.resource.type, b.resource.location, COUNT(b) " +
+           "FROM Booking b WHERE b.status NOT IN ('CANCELLED', 'REJECTED') " +
+           "GROUP BY b.resource.id, b.resource.name, b.resource.type, b.resource.location " +
+           "ORDER BY COUNT(b) DESC")
+    List<Object[]> countBookingsByResource();
 }

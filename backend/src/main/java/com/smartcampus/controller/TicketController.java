@@ -62,6 +62,11 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.updateTicketStatus(id, status));
     }
 
+    @GetMapping("/assigned/{userId}")
+    public ResponseEntity<List<Ticket>> getAssignedTickets(@PathVariable Long userId) {
+        return ResponseEntity.ok(ticketService.getTicketsAssignedTo(userId));
+    }
+
     @PatchMapping("/{id}/assign")
     public ResponseEntity<Ticket> assignTicket(
             @PathVariable Long id,
@@ -69,12 +74,48 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.assignTicket(id, assigneeId));
     }
 
+    @PatchMapping("/{id}/start")
+    public ResponseEntity<Ticket> startWork(
+            @PathVariable Long id,
+            @RequestParam Long staffId) {
+        return ResponseEntity.ok(ticketService.startWork(id, staffId));
+    }
+
+    @PatchMapping("/{id}/resolve")
+    public ResponseEntity<Ticket> resolveTicket(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
+        String notes = body.getOrDefault("resolutionNotes", "");
+        return ResponseEntity.ok(ticketService.resolveTicket(id, notes));
+    }
+
+    @PatchMapping("/{id}/close")
+    public ResponseEntity<Ticket> closeTicket(@PathVariable Long id) {
+        return ResponseEntity.ok(ticketService.closeTicket(id));
+    }
+
+    @PatchMapping("/{id}/reject")
+    public ResponseEntity<Ticket> rejectTicket(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
+        String reason = body.getOrDefault("reason", "");
+        return ResponseEntity.ok(ticketService.rejectTicket(id, reason));
+    }
+
     @PostMapping("/{id}/image")
     public ResponseEntity<Ticket> uploadImage(
             @PathVariable Long id,
-            @RequestParam("file") MultipartFile file) throws IOException {
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "slot", defaultValue = "1") int slot) throws IOException {
         String fileName = fileUploadUtil.saveFile("tickets", file);
-        return ResponseEntity.ok(ticketService.setImageUrl(id, "/uploads/tickets/" + fileName));
+        return ResponseEntity.ok(ticketService.setImageUrl(id, "/uploads/tickets/" + fileName, slot));
+    }
+
+    @DeleteMapping("/{id}/image")
+    public ResponseEntity<Ticket> removeImage(
+            @PathVariable Long id,
+            @RequestParam(value = "slot", defaultValue = "1") int slot) {
+        return ResponseEntity.ok(ticketService.removeImageUrl(id, slot));
     }
 
     @PostMapping("/{id}/comments")
