@@ -197,7 +197,7 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null }) 
           <label>
             Attendees *
             {selectedResource && (
-              <span style={{ fontWeight: 400, color: '#64748b', marginLeft: 6 }}>
+              <span style={{ fontWeight: 400, color: '#64748b', marginLeft: 6, fontSize: 13 }}>
                 (max {selectedResource.capacity})
               </span>
             )}
@@ -216,7 +216,7 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null }) 
         </div>
       </div>
       {overCapacity && (
-        <p style={{ color: '#dc2626', fontSize: 13, marginTop: 6, marginBottom: 0 }}>
+        <p style={{ color: '#dc2626', fontSize: 14, marginTop: 6, marginBottom: 0 }}>
           Exceeds room capacity of {selectedResource.capacity}. Please reduce attendees or choose a larger room.
         </p>
       )}
@@ -227,7 +227,7 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null }) 
           <label>
             Time Slot *
             {!form.startTime && !waitlistSlot && (
-              <span style={{ fontWeight: 400, color: '#64748b', marginLeft: 8 }}>
+              <span style={{ fontWeight: 400, color: '#64748b', marginLeft: 8, fontSize: 13 }}>
                 Click a free slot to book — click a booked slot to waitlist
               </span>
             )}
@@ -248,11 +248,11 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null }) 
         <div className="waitlist-banner">
           <div className="waitlist-banner-icon">⏳</div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 600, marginBottom: 2 }}>Joining waitlist</div>
-            <div style={{ fontSize: 13 }}>
+            <div style={{ fontWeight: 600, marginBottom: 2, fontSize: 14 }}>Joining waitlist</div>
+            <div style={{ fontSize: 14 }}>
               {selectedResource?.name} · {form.date} · {fmtSlot(waitlistSlot.startTime)} – {fmtSlot(waitlistSlot.endTime)}
             </div>
-            <div style={{ fontSize: 12, marginTop: 4, color: '#92400e' }}>
+            <div style={{ fontSize: 13, marginTop: 4, color: '#92400e' }}>
               You'll be automatically approved and notified if this slot becomes available.
             </div>
           </div>
@@ -267,7 +267,7 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null }) 
 
       {/* Availability double-check (booking mode only) */}
       {!waitlistSlot && form.resourceId && form.startTime && form.endTime && (
-        <div style={{ marginBottom: 12, fontSize: 13, fontWeight: 500 }}>
+        <div style={{ marginBottom: 12, fontSize: 14, fontWeight: 500 }}>
           {checking && <span style={{ color: '#64748b' }}>⏳ Confirming availability…</span>}
           {!checking && availability === true  && <span style={{ color: '#16a34a' }}>✓ Slot confirmed available</span>}
           {!checking && availability === false && <span style={{ color: '#dc2626' }}>✗ Slot no longer available — please choose another</span>}
@@ -307,7 +307,7 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null }) 
         </div>
       )}
       {!waitlistSlot && form.recurrenceRule !== 'NONE' && occurrenceCount != null && (
-        <p style={{ fontSize: 13, color: '#2563eb', margin: '8px 0 0', fontWeight: 500 }}>
+        <p style={{ fontSize: 14, color: '#2563eb', margin: '8px 0 0', fontWeight: 500 }}>
           Will create {occurrenceCount} booking{occurrenceCount !== 1 ? 's' : ''} total
           {occurrenceCount >= 365 ? ' (capped at 365)' : ''}.
         </p>

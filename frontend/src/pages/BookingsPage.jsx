@@ -231,8 +231,8 @@ export default function BookingsPage() {
       {/* ── Header ── */}
       <div className="page-header page-header-row" style={{ marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700 }}>Bookings</h1>
-          <p style={{ color: '#64748b', marginTop: 2 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 700 }}>Bookings</h1>
+          <p style={{ color: '#64748b', marginTop: 2, fontSize: 15 }}>
             {isAdmin ? 'Manage all campus resource bookings' : 'Your resource booking requests'}
           </p>
         </div>
@@ -316,9 +316,7 @@ export default function BookingsPage() {
               onChange={e => setFilterEndDate(e.target.value)}
               title="To date"
             />
-            <button className="btn btn-sm btn-primary" onClick={load} style={{ gap: 4 }}>
-              <RefreshCw size={12} /> Apply
-            </button>
+
             {(filterResourceId || filterStartDate || filterEndDate) && (
               <button className="btn btn-sm btn-secondary" onClick={clearFilters}>Clear</button>
             )}
@@ -327,7 +325,7 @@ export default function BookingsPage() {
       </div>
 
       {/* ── Result count ── */}
-      <div style={{ marginBottom: 12, fontSize: 12, color: '#94a3b8', fontWeight: 500 }}>
+      <div style={{ marginBottom: 12, fontSize: 13, color: '#94a3b8', fontWeight: 500 }}>
         Showing {displayed.length} booking{displayed.length !== 1 ? 's' : ''}
       </div>
 
@@ -346,8 +344,8 @@ export default function BookingsPage() {
           {displayed.length === 0 ? (
             <div className="empty-state" style={{ padding: '56px 24px' }}>
               <CalendarCheck size={44} style={{ opacity: 0.3, marginBottom: 14 }} />
-              <h3 style={{ fontSize: 15, fontWeight: 600 }}>No bookings found</h3>
-              <p style={{ fontSize: 13, marginTop: 4 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 600 }}>No bookings found</h3>
+              <p style={{ fontSize: 14, marginTop: 4 }}>
                 {filterStatus
                   ? `No ${STATUS_LABEL[filterStatus]?.toLowerCase()} bookings.`
                   : 'Click "New Booking" to reserve a resource.'}
@@ -407,7 +405,7 @@ export default function BookingsPage() {
                         </div>
                       </td>
                       <td style={{ textAlign: 'center' }}>
-                        <span style={{ fontSize: 13, color: '#475569', fontWeight: 500 }}>
+                        <span style={{ fontSize: 14, color: '#475569', fontWeight: 500 }}>
                           {b.expectedAttendees ?? '—'}
                         </span>
                       </td>
@@ -506,7 +504,7 @@ export default function BookingsPage() {
                 {isAdmin ? 'Waitlist Management' : 'My Waitlist'}
               </h2>
               {waitlist.filter(w => w.status === 'WAITING').length > 0 && (
-                <span style={{ fontSize: 12, color: '#b45309' }}>
+                <span style={{ fontSize: 13, color: '#b45309' }}>
                   {waitlist.filter(w => w.status === 'WAITING').length} currently waiting
                 </span>
               )}
@@ -543,10 +541,10 @@ export default function BookingsPage() {
           <div className="booking-table-card">
             <div className="empty-state" style={{ padding: '40px 20px' }}>
               <Clock size={36} style={{ opacity: 0.25, marginBottom: 12 }} />
-              <h3 style={{ fontSize: 14, fontWeight: 600 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 600 }}>
                 {isAdmin ? 'No waitlist entries' : 'You have no waitlist entries'}
               </h3>
-              <p style={{ fontSize: 13, marginTop: 4 }}>
+              <p style={{ fontSize: 14, marginTop: 4 }}>
                 {isAdmin
                   ? 'No one is currently waiting for any resource.'
                   : 'Click a booked slot in the slot picker to join a waitlist.'}
@@ -595,8 +593,8 @@ export default function BookingsPage() {
                                 {(w.user?.name || 'U').charAt(0).toUpperCase()}
                               </div>
                               <div>
-                                <div style={{ fontWeight: 500, fontSize: 13 }}>{w.user?.name}</div>
-                                <div style={{ fontSize: 11, color: '#94a3b8' }}>{w.user?.email}</div>
+                                <div style={{ fontWeight: 500, fontSize: 14 }}>{w.user?.name}</div>
+                                <div style={{ fontSize: 12, color: '#94a3b8' }}>{w.user?.email}</div>
                               </div>
                             </div>
                           </td>
@@ -615,10 +613,10 @@ export default function BookingsPage() {
                           </div>
                         </td>
                         <td>
-                          <div className="booking-title" style={{ fontSize: 13 }}>{w.title}</div>
+                          <div className="booking-title" style={{ fontSize: 14 }}>{w.title}</div>
                           {w.purpose && <div className="booking-subtitle">{w.purpose}</div>}
                         </td>
-                        <td style={{ textAlign: 'center', fontSize: 13, color: '#475569', fontWeight: 500 }}>
+                        <td style={{ textAlign: 'center', fontSize: 14, color: '#475569', fontWeight: 500 }}>
                           {w.expectedAttendees ?? '—'}
                         </td>
                         {isAdmin && (
@@ -696,8 +694,8 @@ export default function BookingsPage() {
                   <XCircle size={18} />
                 </div>
                 <div>
-                  <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Reject Booking</h2>
-                  <p style={{ margin: 0, fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                  <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>Reject Booking</h2>
+                  <p style={{ margin: 0, fontSize: 13, color: '#64748b', marginTop: 2 }}>
                     The requester will be notified with your reason.
                   </p>
                 </div>
@@ -708,7 +706,7 @@ export default function BookingsPage() {
             </div>
             <div style={{ padding: '20px 24px 24px' }}>
               <div className="form-group">
-                <label style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Reason *</label>
+                <label style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>Reason *</label>
                 <textarea
                   className="form-control"
                   rows={3}
@@ -740,7 +738,7 @@ export default function BookingsPage() {
                   <CalendarCheck size={18} />
                 </div>
                 <div>
-                  <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Booking #{detailBooking.id}</h2>
+                  <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>Booking #{detailBooking.id}</h2>
                   <span className={`badge ${STATUS_BADGE[detailBooking.status] || 'badge-gray'}`} style={{ gap: 4, marginTop: 4, display: 'inline-flex' }}>
                     {STATUS_ICON[detailBooking.status]}
                     {STATUS_LABEL[detailBooking.status] || detailBooking.status}
