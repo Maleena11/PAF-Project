@@ -53,11 +53,7 @@ export default function Dashboard() {
   const [adminTab, setAdminTab] = useState('overview')
 
   const isAdmin = user?.role === 'ADMIN'
-<<<<<<< Updated upstream
-  const isStaff = user?.role === 'STAFF' || isAdmin
-=======
   const isStaff = user?.role === 'STAFF'
->>>>>>> Stashed changes
 
   // Tick every second for the countdown — only for students
   useEffect(() => {
