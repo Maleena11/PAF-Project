@@ -46,6 +46,7 @@ export default function Dashboard() {
   const [errors, setErrors] = useState({})
   const [reBooking, setReBooking] = useState(null) // booking to prefill for rebook
   const [now, setNow] = useState(() => new Date())
+  const [adminTab, setAdminTab] = useState('overview')
 
   const isAdmin = user?.role === 'ADMIN'
 
@@ -224,6 +225,225 @@ export default function Dashboard() {
         </div>
       )}
 
+
+      {isAdmin && (() => {
+        const TABS = [
+          { key: 'overview',    label: 'Overview'   },
+          { key: 'analytics',   label: 'Analytics'  },
+          { key: 'operations',  label: 'Operations' },
+          { key: 'security',    label: 'Security'   },
+        ]
+        return (
+          <div style={{
+            display: 'flex', gap: 4, marginBottom: 24,
+            borderBottom: '2px solid #e2e8f0', paddingBottom: 0,
+          }}>
+            {TABS.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setAdminTab(tab.key)}
+                style={{
+                  padding: '8px 20px',
+                  fontSize: 13, fontWeight: 600,
+                  border: 'none', background: 'none', cursor: 'pointer',
+                  borderBottom: adminTab === tab.key ? '2px solid #2563eb' : '2px solid transparent',
+                  color: adminTab === tab.key ? '#2563eb' : '#64748b',
+                  marginBottom: -2,
+                  transition: 'color 0.15s',
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )
+      })()}
+
+      {isAdmin ? (
+        /* Admin: 4 stat cards row, then 2 distribution cards row */
+        <>
+          {adminTab === 'overview' && (
+          <>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: 16,
+            marginBottom: 16,
+          }}>
+            {stats.map(s => (
+              <StatCard
+                key={s.label}
+                icon={s.icon}
+                label={s.label}
+                value={s.value}
+                color={s.color}
+                loading={loading}
+              />
+            ))}
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 16,
+            marginBottom: 24,
+          }}>
+            <RoleDistributionCard roles={userRoles} />
+            <AuthProviderCard providers={userProviders} />
+          </div>
+          </>
+          )}
+        </>
+      ) : (
+        /* Staff / Student: plain 4-card row */
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: 16,
+          marginBottom: 24,
+        }}>
+          {stats.map(s => (
+            <StatCard
+              key={s.label}
+              icon={s.icon}
+              label={s.label}
+              value={s.value}
+              color={s.color}
+              loading={loading}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* ── Admin Quick Actions ── */}
+      {isAdmin && adminTab === 'overview' && (
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f0f7ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '5px 12px' }}>
+              <Zap size={13} color="#2563eb" />
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Quick Actions</span>
+            </div>
+            <div style={{ flex: 1, height: 1, background: 'linear-gradient(to right, #bfdbfe, #e2e8f0)' }} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+            {[
+              { icon: Users,         label: 'Manage Users',     sub: 'View & edit accounts',      to: '/admin/users', bg: '#2563eb', light: '#dbeafe', darkBg: '#1d4ed8' },
+              { icon: Building2,     label: 'Manage Resources', sub: 'Add, edit & track status',  to: '/resources',   bg: '#7c3aed', light: '#ede9fe', darkBg: '#6d28d9' },
+              { icon: CalendarCheck, label: 'All Bookings',     sub: 'Review reservations',       to: '/bookings',    bg: '#16a34a', light: '#dcfce7', darkBg: '#15803d' },
+              { icon: Ticket,        label: 'All Tickets',      sub: 'Manage support cases',      to: '/tickets',     bg: '#dc2626', light: '#fee2e2', darkBg: '#b91c1c' },
+            ].map(({ icon: Icon, label, sub, to, bg, light, darkBg }) => (
+              <Link
+                key={to}
+                to={to}
+                style={{
+                  display: 'flex', flexDirection: 'column',
+                  padding: '0', borderRadius: 14, overflow: 'hidden',
+                  background: '#fff',
+                  border: `1.5px solid ${light}`,
+                  textDecoration: 'none', color: 'inherit',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                  transition: 'box-shadow 0.15s, transform 0.12s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 6px 20px ${bg}30`; e.currentTarget.style.transform = 'translateY(-2px)' }}
+                onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'; e.currentTarget.style.transform = 'translateY(0)' }}
+              >
+                {/* Coloured top stripe */}
+                <div style={{ height: 4, background: `linear-gradient(90deg, ${bg}, ${darkBg})` }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px' }}>
+                  <div style={{
+                    width: 44, height: 44, borderRadius: 12, background: light,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    boxShadow: `0 2px 8px ${bg}22`,
+                  }}>
+                    <Icon size={20} color={bg} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 13.5, color: '#111827', lineHeight: 1.3 }}>{label}</div>
+                    <div style={{ fontSize: 11.5, color: '#6b7280', marginTop: 3 }}>{sub}</div>
+                  </div>
+                  <ChevronRight size={15} color="#d1d5db" style={{ flexShrink: 0 }} />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Staff Quick Actions ── */}
+      {isStaff && (
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Quick Actions</span>
+            <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+            {[
+              { icon: Building2,     label: 'Manage Resources', sub: 'Add, edit & track status',  to: '/resources',     bg: '#7c3aed', light: '#ede9fe' },
+              { icon: CalendarCheck, label: 'All Bookings',     sub: 'Review & approve requests', to: '/bookings',      bg: '#16a34a', light: '#dcfce7' },
+              { icon: Ticket,        label: 'All Tickets',      sub: 'Manage support cases',      to: '/tickets',       bg: '#dc2626', light: '#fee2e2' },
+              { icon: Bell,          label: 'Notifications',    sub: 'Check your alerts',         to: '/notifications', bg: '#d97706', light: '#fef3c7' },
+            ].map(({ icon: Icon, label, sub, to, bg, light }) => (
+              <Link
+                key={to}
+                to={to}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 14,
+                  padding: '14px 18px', borderRadius: 12,
+                  background: '#fff', border: `1.5px solid ${light}`,
+                  borderTop: `3px solid ${bg}`,
+                  textDecoration: 'none', color: 'inherit',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                  transition: 'box-shadow 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)' }}
+                onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.06)' }}
+              >
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10, background: light,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
+                  <Icon size={18} color={bg} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: '#111827', lineHeight: 1.3 }}>{label}</div>
+                  <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{sub}</div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Admin Analytics ── */}
+      {isAdmin && adminTab === 'analytics' && (
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#faf5ff', border: '1px solid #ddd6fe', borderRadius: 8, padding: '5px 12px' }}>
+              <BarChart2 size={13} color="#7c3aed" />
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#6d28d9', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Analytics</span>
+            </div>
+            <div style={{ flex: 1, height: 1, background: 'linear-gradient(to right, #ddd6fe, #e2e8f0)' }} />
+          </div>
+          <AdminAnalytics />
+        </div>
+      )}
+
+      {/* ── Permission Matrix (admin only) ── */}
+      {isAdmin && adminTab === 'security' && (
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 8, padding: '5px 12px' }}>
+              <Lock size={13} color="#ea580c" />
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#c2410c', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Access Control</span>
+            </div>
+            <div style={{ flex: 1, height: 1, background: 'linear-gradient(to right, #fed7aa, #e2e8f0)' }} />
+          </div>
+          <PermissionMatrixCard />
+        </div>
+      )}
+
+      {/* ── Pending Approvals Queue (admin + staff) ── */}
+      {(isAdmin ? adminTab === 'operations' : true) && (isAdmin || isStaff) && (
+
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(4, 1fr)',
@@ -244,21 +464,47 @@ export default function Dashboard() {
 
       {/* ── Pending Approvals Queue (admin only) ── */}
       {isAdmin && (
+
         <div style={{ marginBottom: 24 }}>
           <BookingApprovalQueue onUpdate={loadStats} />
         </div>
       )}
 
+
+      {/* ── Resource Utilization Summary (admin + staff) ── */}
+      {(isAdmin ? adminTab === 'operations' : true) && (isAdmin || isStaff) && (
+
       {/* ── Resource Utilization Summary (admin only) ── */}
       {isAdmin && (
+
         <div style={{ marginBottom: 24 }}>
           <ResourceUtilizationSummary onUpdate={loadStats} />
         </div>
       )}
 
+
+      {/* ── Admin/Staff: full-width recent tickets with inline status control ── */}
+      {(isAdmin ? adminTab === 'operations' : true) && (isAdmin || isStaff) && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: 8, padding: '5px 12px' }}>
+              <Ticket size={13} color="#dc2626" />
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#b91c1c', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Support Tickets</span>
+            </div>
+            <div style={{ flex: 1, height: 1, background: 'linear-gradient(to right, #fecdd3, #e2e8f0)' }} />
+            {openTickets > 0 && (
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#b91c1c', background: '#fee2e2', border: '1px solid #fecdd3', padding: '2px 9px', borderRadius: 20 }}>
+                {openTickets} open
+              </span>
+            )}
+          </div>
+          <RecentTicketsAdmin onUpdate={loadStats} />
+        </div>
+
       {/* ── Admin: full-width recent tickets with inline status control ── */}
       {isAdmin && (
         <RecentTicketsAdmin onUpdate={loadStats} />
+
       )}
 
       {/* ── User: Quick Actions ── */}

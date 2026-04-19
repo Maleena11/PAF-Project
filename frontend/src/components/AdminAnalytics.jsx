@@ -3,10 +3,11 @@ import {
   PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from 'recharts'
-import { BarChart2, PieChart as PieIcon, TrendingUp, RefreshCw } from 'lucide-react'
+import { BarChart2, PieChart as PieIcon, TrendingUp, RefreshCw, Clock, Award } from 'lucide-react'
 import bookingService from '../services/bookingService'
 import ticketService from '../services/ticketService'
 import resourceService from '../services/resourceService'
+import analyticsService from '../services/analyticsService'
 import { format, subDays, startOfDay } from 'date-fns'
 
 /* ── colour palettes ── */
@@ -86,11 +87,13 @@ const renderPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent })
 }
 
 export default function AdminAnalytics() {
-  const [bookings,  setBookings]  = useState([])
-  const [resources, setResources] = useState([])
-  const [tickets,   setTickets]   = useState([])
-  const [loading,   setLoading]   = useState(true)
-  const [error,     setError]     = useState(false)
+  const [bookings,     setBookings]     = useState([])
+  const [resources,    setResources]    = useState([])
+  const [tickets,      setTickets]      = useState([])
+  const [peakHours,    setPeakHours]    = useState([])
+  const [topResources, setTopResources] = useState([])
+  const [loading,      setLoading]      = useState(true)
+  const [error,        setError]        = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -104,6 +107,14 @@ export default function AdminAnalytics() {
         setBookings(Array.isArray(b.data)  ? b.data  : [])
         setResources(Array.isArray(r.data) ? r.data  : [])
         setTickets(Array.isArray(t.data)   ? t.data  : [])
+        // Analytics endpoints load independently so a backend restart doesn't break the whole dashboard
+        Promise.allSettled([
+          analyticsService.getPeakHours(),
+          analyticsService.getTopResources(5),
+        ]).then(([ph, tr]) => {
+          if (ph.status === 'fulfilled') setPeakHours(Array.isArray(ph.value.data) ? ph.value.data : [])
+          if (tr.status === 'fulfilled') setTopResources(Array.isArray(tr.value.data) ? tr.value.data : [])
+        })
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false))
@@ -286,7 +297,82 @@ export default function AdminAnalytics() {
         </ChartCard>
       </div>
 
-      {/* ── Row 3: Bookings by resource type (bar) + Ticket status (pie) + Ticket priority (bar) ── */}
+      {/* ── Row 3: Peak Booking Hours (wide) + Top 5 Resources (wide) ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+        <ChartCard>
+          <SectionTitle icon={Clock} title="Peak Booking Hours" color="#0891b2" />
+          {peakHours.every(h => h.count === 0) ? (
+            <div style={{ textAlign: 'center', paddingTop: 60, color: '#94a3b8', fontSize: 12 }}>No booking data yet</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart
+                data={peakHours.filter(h => h.hour >= 6 && h.hour <= 22)}
+                margin={{ top: 4, right: 8, left: -20, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 9, fill: '#94a3b8' }} tickLine={false} axisLine={false} interval={1} />
+                <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(8,145,178,0.08)' }} />
+                <Bar dataKey="count" name="Bookings" radius={[4, 4, 0, 0]} maxBarSize={24}>
+                  {peakHours.filter(h => h.hour >= 6 && h.hour <= 22).map((entry, i) => {
+                    const max = Math.max(...peakHours.map(h => h.count))
+                    const intensity = max > 0 ? entry.count / max : 0
+                    const r = Math.round(8 + (234 - 8) * (1 - intensity))
+                    const g = Math.round(145 + (88 - 145) * intensity)
+                    const b = Math.round(178 + (12 - 178) * intensity)
+                    return <Cell key={i} fill={`rgb(${r},${g},${b})`} />
+                  })}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </ChartCard>
+
+        <ChartCard>
+          <SectionTitle icon={Award} title="Top 5 Most Booked Resources" color="#d97706" />
+          {topResources.length === 0 ? (
+            <div style={{ textAlign: 'center', paddingTop: 60, color: '#94a3b8', fontSize: 12 }}>No booking data yet</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart
+                data={topResources.map(r => ({
+                  name: r.name.length > 18 ? r.name.slice(0, 16) + '…' : r.name,
+                  fullName: r.name,
+                  type: RESOURCE_TYPE_LABELS[r.type] || r.type,
+                  Bookings: r.bookingCount,
+                }))}
+                layout="vertical"
+                margin={{ top: 4, right: 28, left: 8, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} allowDecimals={false} />
+                <YAxis dataKey="name" type="category" tick={{ fontSize: 10, fill: '#475569' }} tickLine={false} axisLine={false} width={100} />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (!active || !payload?.length) return null
+                    const d = payload[0].payload
+                    return (
+                      <div style={{ background: '#1e293b', color: '#f8fafc', padding: '8px 14px', borderRadius: 8, fontSize: 12 }}>
+                        <div style={{ fontWeight: 700, marginBottom: 2 }}>{d.fullName}</div>
+                        <div style={{ color: '#94a3b8', fontSize: 11, marginBottom: 4 }}>{d.type}</div>
+                        <div>Bookings: <strong>{d.Bookings}</strong></div>
+                      </div>
+                    )
+                  }}
+                />
+                <Bar dataKey="Bookings" radius={[0, 4, 4, 0]} maxBarSize={22}>
+                  {topResources.map((_, i) => {
+                    const colors = ['#f59e0b', '#fbbf24', '#fcd34d', '#fde68a', '#fef3c7']
+                    return <Cell key={i} fill={colors[i] || '#fef3c7'} />
+                  })}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </ChartCard>
+      </div>
+
+      {/* ── Row 4: Bookings by resource type (bar) + Ticket status (pie) + Ticket priority (bar) ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 4 }}>
         <ChartCard>
           <SectionTitle icon={BarChart2} title="Bookings by Resource Type" color="#ea580c" />

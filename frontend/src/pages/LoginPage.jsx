@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Building2, Mail, ArrowRight, ChevronRight, Shield, Users, BookOpen, Zap } from 'lucide-react'
+import { Building2, Mail, ArrowRight, ChevronRight, Shield, Users, BookOpen, Zap, AlertTriangle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api, { BACKEND_URL } from '../services/api'
@@ -21,14 +21,27 @@ const FEATURES = [
 export default function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
-  const [email, setEmail]           = useState('')
-  const [error, setError]           = useState('')
-  const [loading, setLoading]       = useState(false)
-  const [focused, setFocused]       = useState(false)
+  const [email, setEmail]               = useState('')
+  const [error, setError]               = useState('')
+  const [emailError, setEmailError]     = useState('')
+  const [touched, setTouched]           = useState(false)
+  const [loading, setLoading]           = useState(false)
+  const [focused, setFocused]           = useState(false)
   const [quickLoading, setQuickLoading] = useState(null)
+
+  function validateEmail(value) {
+    const val = value.trim()
+    if (!val)                                                          return 'Email is required'
+    if (!/^[a-zA-Z]{2,}[0-9]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(val))
+                                                                       return 'Email must start with letters followed by numbers (e.g. it23636226@gmail.com)'
+    return ''
+  }
 
   const handleLogin = async (e) => {
     e.preventDefault()
+    setTouched(true)
+    const err = validateEmail(email)
+    if (err) { setEmailError(err); return }
     setError('')
     setLoading(true)
     try {
@@ -95,15 +108,15 @@ export default function LoginPage() {
         <div style={{ position: 'relative', zIndex: 1, maxWidth: 580, width: '100%' }}>
           {/* Campus image */}
           <div style={{
-            width: '100%', height: 310,
+            width: '100%', height: 280,
             borderRadius: 20,
             overflow: 'hidden',
-            marginBottom: 24,
+            marginBottom: 20,
             boxShadow: '0 20px 70px rgba(0,0,0,0.5)',
             border: '1px solid rgba(255,255,255,0.14)',
           }}>
             <img
-              src="/SLIIT-Kandy-UNI.jpg"
+              src="/SLIIT-Kandy-UNI-Opening-3.jpg"
               alt="SLIIT Kandy Campus"
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             />
@@ -120,7 +133,7 @@ export default function LoginPage() {
           }}>
             <Building2 size={14} color="#93c5fd" />
             <span style={{ color: '#93c5fd', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              SLIIT Kandy Campus
+              SLIIT Kandy Uni
             </span>
           </div>
 
@@ -131,7 +144,7 @@ export default function LoginPage() {
             Smart Campus<br />
             <span style={{ color: '#93c5fd' }}>Management System</span>
           </h2>
-          <p style={{ color: '#94a3b8', fontSize: 14, margin: '0 0 22px', lineHeight: 1.65, maxWidth: 480 }}>
+          <p style={{ color: '#94a3b8', fontSize: 13, margin: '0 0 16px', lineHeight: 1.55, maxWidth: 480 }}>
             A unified platform for managing campus resources, bookings, and activities — built for the modern university.
           </p>
 
@@ -214,30 +227,38 @@ export default function LoginPage() {
                 display: 'block', fontSize: 13, fontWeight: 600,
                 color: '#374151', marginBottom: 7, letterSpacing: '0.01em',
               }}>
-                Campus Email Address
+                Campus Email Address <span style={{ color: '#dc2626' }}>*</span>
               </label>
               <div style={{
                 display: 'flex', alignItems: 'center',
-                border: `2px solid ${focused ? '#2563eb' : '#e5e7eb'}`,
-                borderRadius: 12, background: focused ? '#fafbff' : '#fafafa',
+                border: `2px solid ${emailError ? '#fca5a5' : focused ? '#2563eb' : '#e5e7eb'}`,
+                borderRadius: 12,
+                background: emailError ? '#fff8f8' : focused ? '#fafbff' : '#fafafa',
                 transition: 'all 0.2s ease',
-                boxShadow: focused ? '0 0 0 4px rgba(37,99,235,0.08)' : 'none',
+                boxShadow: emailError ? '0 0 0 4px rgba(220,38,38,0.08)' : focused ? '0 0 0 4px rgba(37,99,235,0.08)' : 'none',
               }}>
                 <div style={{
                   padding: '0 14px',
-                  color: focused ? '#2563eb' : '#9ca3af',
+                  color: emailError ? '#dc2626' : focused ? '#2563eb' : '#9ca3af',
                   display: 'flex', transition: 'color 0.2s',
                 }}>
                   <Mail size={17} />
                 </div>
                 <input
-                  type="email"
-                  required
-                  placeholder="IT23636229@my.sliit.lk"
+                  type="text"
+                  placeholder="e.g. it23636226@gmail.com"
                   value={email}
-                  onChange={e => { setEmail(e.target.value); setError('') }}
+                  onChange={e => {
+                    setEmail(e.target.value)
+                    setError('')
+                    if (touched) setEmailError(validateEmail(e.target.value))
+                  }}
                   onFocus={() => setFocused(true)}
-                  onBlur={() => setFocused(false)}
+                  onBlur={() => {
+                    setFocused(false)
+                    setTouched(true)
+                    setEmailError(validateEmail(email))
+                  }}
                   style={{
                     flex: 1, border: 'none', outline: 'none',
                     fontSize: 14, color: '#111827',
@@ -247,6 +268,19 @@ export default function LoginPage() {
                   }}
                 />
               </div>
+              {emailError ? (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  fontSize: 12, color: '#dc2626', marginTop: 6, fontWeight: 500,
+                }}>
+                  <AlertTriangle size={12} />
+                  {emailError}
+                </div>
+              ) : (
+                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 5 }}>
+                  Format: letters followed by numbers (e.g. it23636226@gmail.com)
+                </div>
+              )}
             </div>
 
             {error && (
