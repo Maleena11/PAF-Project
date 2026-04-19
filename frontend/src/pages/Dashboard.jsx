@@ -52,6 +52,7 @@ export default function Dashboard() {
   const [errors, setErrors] = useState({})
   const [reBooking, setReBooking] = useState(null) // booking to prefill for rebook
   const [now, setNow] = useState(() => new Date())
+  const [adminTab, setAdminTab] = useState('overview')
 
   const isAdmin = user?.role === 'ADMIN'
   const isStaff = user?.role === 'STAFF'
@@ -458,9 +459,44 @@ export default function Dashboard() {
         </div>
       )}
 
+      {isAdmin && (() => {
+        const TABS = [
+          { key: 'overview',    label: 'Overview'   },
+          { key: 'analytics',   label: 'Analytics'  },
+          { key: 'operations',  label: 'Operations' },
+          { key: 'security',    label: 'Security'   },
+        ]
+        return (
+          <div style={{
+            display: 'flex', gap: 4, marginBottom: 24,
+            borderBottom: '2px solid #e2e8f0', paddingBottom: 0,
+          }}>
+            {TABS.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setAdminTab(tab.key)}
+                style={{
+                  padding: '8px 20px',
+                  fontSize: 13, fontWeight: 600,
+                  border: 'none', background: 'none', cursor: 'pointer',
+                  borderBottom: adminTab === tab.key ? '2px solid #2563eb' : '2px solid transparent',
+                  color: adminTab === tab.key ? '#2563eb' : '#64748b',
+                  marginBottom: -2,
+                  transition: 'color 0.15s',
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )
+      })()}
+
       {isAdmin ? (
         /* Admin: 4 stat cards row, then 2 distribution cards row */
         <>
+          {adminTab === 'overview' && (
+          <>
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(4, 1fr)',
@@ -487,6 +523,8 @@ export default function Dashboard() {
             <RoleDistributionCard roles={userRoles} />
             <AuthProviderCard providers={userProviders} />
           </div>
+          </>
+          )}
         </>
       ) : (
         /* Staff / Student: plain 4-card row */
@@ -510,7 +548,7 @@ export default function Dashboard() {
       )}
 
       {/* ── Admin Quick Actions ── */}
-      {isAdmin && (
+      {isAdmin && adminTab === 'overview' && (
         <div style={{ marginBottom: 28 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f0f7ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '5px 12px' }}>
@@ -609,7 +647,7 @@ export default function Dashboard() {
       )}
 
       {/* ── Admin Analytics ── */}
-      {isAdmin && (
+      {isAdmin && adminTab === 'analytics' && (
         <div style={{ marginBottom: 28 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#faf5ff', border: '1px solid #ddd6fe', borderRadius: 8, padding: '5px 12px' }}>
@@ -623,7 +661,7 @@ export default function Dashboard() {
       )}
 
       {/* ── Permission Matrix (admin only) ── */}
-      {isAdmin && (
+      {isAdmin && adminTab === 'security' && (
         <div style={{ marginBottom: 28 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 8, padding: '5px 12px' }}>
@@ -637,7 +675,7 @@ export default function Dashboard() {
       )}
 
       {/* ── Pending Approvals Queue (admin + staff) ── */}
-      {(isAdmin || isStaff) && (
+      {(isAdmin ? adminTab === 'operations' : true) && (isAdmin || isStaff) && (
         <div style={{ marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fefce8', border: '1px solid #fde68a', borderRadius: 8, padding: '5px 12px' }}>
@@ -656,7 +694,7 @@ export default function Dashboard() {
       )}
 
       {/* ── Resource Utilization Summary (admin + staff) ── */}
-      {(isAdmin || isStaff) && (
+      {(isAdmin ? adminTab === 'operations' : true) && (isAdmin || isStaff) && (
         <div style={{ marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 8, padding: '5px 12px' }}>
@@ -673,7 +711,7 @@ export default function Dashboard() {
       )}
 
       {/* ── Admin/Staff: full-width recent tickets with inline status control ── */}
-      {(isAdmin || isStaff) && (
+      {(isAdmin ? adminTab === 'operations' : true) && (isAdmin || isStaff) && (
         <div style={{ marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: 8, padding: '5px 12px' }}>

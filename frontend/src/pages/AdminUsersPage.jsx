@@ -70,15 +70,45 @@ function UserFormModal({ initial, onClose, onSave, saving, isSelf }) {
     role:  initial?.role  ?? 'STUDENT',
   })
   const [errs, setErrs] = useState({})
+  const [touched, setTouched] = useState({})
 
-  function set(k, v) { setForm(f => ({ ...f, [k]: v })); setErrs(e => ({ ...e, [k]: '' })) }
+  function validateField(k, v) {
+    const val = (v ?? '').trim()
+    if (k === 'name') {
+      if (!val)                             return 'Name is required'
+      if (val.length < 2)                   return 'Name must be at least 2 characters'
+      if (val.length > 50)                  return 'Name must be 50 characters or fewer'
+      if (!/^[A-Z]/.test(val))             return 'Name must start with a capital letter (e.g. Jane Smith)'
+      if (!/^[A-Z][a-z]+(\s[A-Z][a-z]+)*$/.test(val))
+                                            return 'Each word must start with a capital letter followed by lowercase letters (e.g. Jane Smith)'
+    }
+    if (k === 'email') {
+      if (!val)                             return 'Email is required'
+      if (val.length > 100)                 return 'Email must be 100 characters or fewer'
+      if (!/^[a-z]{2,}[0-9]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(val))
+                                            return 'Email must start with letters followed by numbers (e.g. it23636226@gmail.com)'
+    }
+    return ''
+  }
+
+  function set(k, v) {
+    setForm(f => ({ ...f, [k]: v }))
+    if (touched[k]) setErrs(e => ({ ...e, [k]: validateField(k, v) }))
+  }
+
+  function blur(k) {
+    setTouched(t => ({ ...t, [k]: true }))
+    setErrs(e => ({ ...e, [k]: validateField(k, form[k]) }))
+  }
 
   function validate() {
     const e = {}
-    if (!form.name.trim())  e.name  = 'Name is required'
-    if (!form.email.trim()) e.email = 'Email is required'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Enter a valid email address'
+    const nameErr  = validateField('name',  form.name)
+    const emailErr = validateField('email', form.email)
+    if (nameErr)  e.name  = nameErr
+    if (emailErr) e.email = emailErr
     setErrs(e)
+    setTouched({ name: true, email: true })
     return Object.keys(e).length === 0
   }
 
@@ -138,23 +168,52 @@ function UserFormModal({ initial, onClose, onSave, saving, isSelf }) {
               style={inputStyle(errs.name)}
               placeholder="e.g. Jane Smith"
               value={form.name}
+              maxLength={50}
               onChange={e => set('name', e.target.value)}
               onFocus={e => { e.target.style.borderColor = accentColor; e.target.style.boxShadow = `0 0 0 3px ${accentColor}18` }}
-              onBlur={e => { e.target.style.borderColor = errs.name ? '#fca5a5' : '#e2e8f0'; e.target.style.boxShadow = 'none' }}
+              onBlur={e => { blur('name'); e.target.style.borderColor = errs.name ? '#fca5a5' : '#e2e8f0'; e.target.style.boxShadow = 'none' }}
               autoFocus
             />
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+              {!errs.name && (
+                <span style={{ fontSize: 11, color: '#94a3b8' }}>First letter of each word must be capital (e.g. Jane Smith)</span>
+              )}
+              <span style={{ fontSize: 11, color: form.name.length > 40 ? '#f59e0b' : '#94a3b8', marginLeft: 'auto' }}>
+                {form.name.length}/50
+              </span>
+            </div>
           </Field>
 
-          <Field label="Email Address" required error={errs.email}>
-            <input
-              type="email"
-              style={inputStyle(errs.email)}
-              placeholder="e.g. jane@example.com"
-              value={form.email}
-              onChange={e => set('email', e.target.value)}
-              onFocus={e => { e.target.style.borderColor = accentColor; e.target.style.boxShadow = `0 0 0 3px ${accentColor}18` }}
-              onBlur={e => { e.target.style.borderColor = errs.email ? '#fca5a5' : '#e2e8f0'; e.target.style.boxShadow = 'none' }}
-            />
+          <Field label="Email Address" required={!isEdit} error={errs.email}>
+            {isEdit ? (
+              <div style={{
+                height: 42, padding: '0 13px', display: 'flex', alignItems: 'center',
+                border: '1.5px solid #e2e8f0', borderRadius: 9, background: '#f1f5f9',
+                fontSize: 14, color: '#94a3b8', userSelect: 'none', boxSizing: 'border-box',
+              }}>
+                {form.email}
+              </div>
+            ) : (
+              <input
+                style={inputStyle(errs.email)}
+                placeholder="e.g. it23636226@gmail.com"
+                value={form.email}
+                maxLength={100}
+                onChange={e => set('email', e.target.value)}
+                onFocus={e => { e.target.style.borderColor = accentColor; e.target.style.boxShadow = `0 0 0 3px ${accentColor}18` }}
+                onBlur={e => { blur('email'); e.target.style.borderColor = errs.email ? '#fca5a5' : '#e2e8f0'; e.target.style.boxShadow = 'none' }}
+              />
+            )}
+            {!isEdit && !errs.email && (
+              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                Format: letters followed by numbers (e.g. it23636226@gmail.com)
+              </div>
+            )}
+            {isEdit && (
+              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                Email address cannot be changed after account creation
+              </div>
+            )}
           </Field>
 
           <Field label="Role">
@@ -166,31 +225,47 @@ function UserFormModal({ initial, onClose, onSave, saving, isSelf }) {
                 You cannot change your own role
               </div>
             ) : (
-              <div style={{ display: 'flex', gap: 10 }}>
-                {ROLES.map(r => {
-                  const cfg = ROLE_CFG[r]
-                  const active = form.role === r
-                  return (
-                    <button
-                      key={r} type="button"
-                      onClick={() => set('role', r)}
-                      style={{
-                        flex: 1, padding: '11px 0', borderRadius: 10, cursor: 'pointer',
-                        border: `2px solid ${active ? cfg.color : '#e2e8f0'}`,
-                        background: active ? cfg.bg : '#fff',
-                        color: active ? cfg.color : '#94a3b8',
-                        fontSize: 12, fontWeight: 700,
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
-                        transition: 'all 0.15s',
-                        boxShadow: active ? `0 2px 8px ${cfg.color}22` : 'none',
-                      }}
-                    >
-                      <cfg.icon size={17} />
-                      {cfg.label}
-                    </button>
-                  )
-                })}
-              </div>
+              <>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  {ROLES.map(r => {
+                    const cfg = ROLE_CFG[r]
+                    const active = form.role === r
+                    const blocked = isEdit && initial?.role === 'STUDENT' && r === 'ADMIN'
+                    return (
+                      <button
+                        key={r} type="button"
+                        disabled={blocked}
+                        onClick={() => !blocked && set('role', r)}
+                        title={blocked ? 'Cannot promote directly from Student to Admin. Assign Staff role first.' : undefined}
+                        style={{
+                          flex: 1, padding: '11px 0', borderRadius: 10,
+                          cursor: blocked ? 'not-allowed' : 'pointer',
+                          border: `2px solid ${active ? cfg.color : '#e2e8f0'}`,
+                          background: active ? cfg.bg : blocked ? '#f8fafc' : '#fff',
+                          color: active ? cfg.color : blocked ? '#cbd5e1' : '#94a3b8',
+                          fontSize: 12, fontWeight: 700,
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+                          transition: 'all 0.15s',
+                          boxShadow: active ? `0 2px 8px ${cfg.color}22` : 'none',
+                          opacity: blocked ? 0.5 : 1,
+                        }}
+                      >
+                        <cfg.icon size={17} />
+                        {cfg.label}
+                      </button>
+                    )
+                  })}
+                </div>
+                {isEdit && initial?.role === 'STUDENT' && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    marginTop: 8, fontSize: 11, color: '#f59e0b',
+                  }}>
+                    <AlertTriangle size={11} />
+                    Student cannot be promoted directly to Admin. Change to Staff first.
+                  </div>
+                )}
+              </>
             )}
           </Field>
 
@@ -363,6 +438,12 @@ export default function AdminUsersPage() {
   }
 
   async function handleQuickRoleChange(userId, newRole) {
+    const target = users.find(u => u.id === userId)
+    if (target?.role === 'STUDENT' && newRole === 'ADMIN') {
+      setRoleDropdown(null)
+      toast.error('Cannot promote Student directly to Admin. Change to Staff first.')
+      return
+    }
     setRoleDropdown(null)
     try {
       const r = await api.patch(`/auth/users/${userId}/role`, { role: newRole })
@@ -763,7 +844,7 @@ export default function AdminUsersPage() {
                                 borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
                                 minWidth: 130, overflow: 'hidden',
                               }}>
-                                {ROLES.filter(r => r !== u.role).map(r => {
+                                {ROLES.filter(r => r !== u.role && !(u.role === 'STUDENT' && r === 'ADMIN')).map(r => {
                                   const cfg = ROLE_CFG[r]
                                   return (
                                     <button
