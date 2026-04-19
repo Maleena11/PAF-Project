@@ -16,9 +16,7 @@ api.interceptors.request.use((config) => {
     if (user?.token) {
       config.headers['Authorization'] = `Bearer ${user.token}`
     }
-  } catch {
-    // ignore
-  }
+  } catch {}
   return config
 })
 

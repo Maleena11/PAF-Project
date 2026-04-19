@@ -24,6 +24,8 @@ const ticketService = {
   resolve: (id, resolutionNotes) => api.patch(`/tickets/${id}/resolve`, { resolutionNotes }),
   close: (id) => api.patch(`/tickets/${id}/close`),
   reject: (id, reason) => api.patch(`/tickets/${id}/reject`, { reason }),
+  editComment: (id, userId, role, content) => api.put(`/comments/${id}`, { userId, role, content }),
+  deleteComment: (id, userId, role) => api.delete(`/comments/${id}`, { params: { userId, role } }),
 }
 
 export default ticketService

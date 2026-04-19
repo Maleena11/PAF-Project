@@ -1,4 +1,15 @@
 -- =============================================
+-- Schema Migrations (continue-on-error=true handles duplicates)
+-- =============================================
+ALTER TABLE tickets MODIFY COLUMN status VARCHAR(50) NOT NULL DEFAULT 'OPEN';
+ALTER TABLE tickets MODIFY COLUMN category VARCHAR(50) NOT NULL;
+ALTER TABLE tickets MODIFY COLUMN priority VARCHAR(50) NOT NULL DEFAULT 'MEDIUM';
+ALTER TABLE tickets ADD COLUMN first_response_at DATETIME NULL;
+ALTER TABLE tickets ADD COLUMN resolution_notes TEXT NULL;
+ALTER TABLE tickets ADD COLUMN rejection_reason TEXT NULL;
+ALTER TABLE tickets ADD COLUMN rejected_at DATETIME NULL;
+
+-- =============================================
 -- Smart Campus - Seed Data
 -- =============================================
 
