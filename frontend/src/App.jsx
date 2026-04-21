@@ -20,7 +20,7 @@ function AdminRoute({ children }) {
 
 function AppLayout() {
   const { user } = useAuth()
-  if (!user) return <Navigate to="/login" replace />
+  if (!user?.token) return <Navigate to="/login" replace />
 
   return (
     <div className="layout">

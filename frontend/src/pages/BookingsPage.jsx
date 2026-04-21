@@ -84,7 +84,7 @@ export default function BookingsPage() {
       if (filterEndDate)    params.endDate    = new Date(filterEndDate).toISOString()
       call = bookingService.getAll(params)
     } else {
-      call = bookingService.getByUser(user.id)
+      call = bookingService.getMine()
     }
     call
       .then(r => setBookings(Array.isArray(r.data) ? r.data : []))
@@ -100,7 +100,7 @@ export default function BookingsPage() {
           ...(wlFilterResource ? { resourceId: wlFilterResource } : {}),
           ...(wlFilterStatus   ? { status: wlFilterStatus }       : {}),
         })
-      : waitlistService.getByUser(user.id)
+      : waitlistService.getMine()
     call
       .then(r => setWaitlist(Array.isArray(r.data) ? r.data : []))
       .catch(() => {})
@@ -113,7 +113,7 @@ export default function BookingsPage() {
   const handleCreate = async (data) => {
     try {
       if (data._waitlist) {
-        toast.success("You've been added to the waitlist! We'll notify you if the slot opens up.")
+        toast.success("You've been added to the waitlist. If the slot opens up, we'll create a pending booking and notify you.")
         setShowForm(false)
         loadWaitlist()
         return
@@ -138,7 +138,7 @@ export default function BookingsPage() {
   const handleLeaveWaitlist = async (id) => {
     if (!window.confirm('Remove yourself from this waitlist?')) return
     try {
-      await waitlistService.leave(id, user.id)
+      await waitlistService.leave(id)
       toast.success('Removed from waitlist')
       loadWaitlist()
     } catch (err) {
@@ -198,7 +198,7 @@ export default function BookingsPage() {
       if (isAdmin) {
         await bookingService.updateStatus(id, 'CANCELLED')
       } else {
-        await bookingService.cancelOwn(id, user.id)
+        await bookingService.cancelOwn(id)
       }
       toast.success('Booking cancelled')
       load()
@@ -396,6 +396,108 @@ export default function BookingsPage() {
         Showing {displayed.length} booking{displayed.length !== 1 ? 's' : ''}
       </div>
 
+      {/* ── Student waitlist snapshot in main booking view ── */}
+      {!isAdmin && waitlist.length > 0 && (
+        <div className="booking-table-card" style={{ marginBottom: 18 }}>
+          <div style={{
+            padding: '16px 18px 12px',
+            borderBottom: '1px solid #eef2f7',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{
+                width: 34, height: 34, borderRadius: 10,
+                background: '#fff7ed', border: '1px solid #fed7aa',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#c2410c',
+              }}>
+                <Clock size={16} />
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>My Waitlist</div>
+                <div style={{ fontSize: 12, color: '#6b7280' }}>
+                  Your waitlist entries also appear here for quick tracking.
+                </div>
+              </div>
+            </div>
+            <span className="badge badge-yellow">
+              {waitlist.filter(w => w.status === 'WAITING').length} waiting
+            </span>
+          </div>
+
+          <div className="table-wrapper">
+            <table className="booking-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Resource</th>
+                  <th>Date & Slot</th>
+                  <th>Title</th>
+                  <th style={{ textAlign: 'center' }}>
+                    <Users size={12} style={{ verticalAlign: 'middle' }} />
+                  </th>
+                  <th>Status</th>
+                  <th>Joined</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {waitlist.map(w => (
+                  <tr key={`snapshot-${w.id}`} className="booking-row">
+                    <td><span className="row-number">#{w.id}</span></td>
+                    <td><span className="resource-chip">{w.resource?.name}</span></td>
+                    <td>
+                      <div className="datetime-cell">
+                        <span className="date-primary">{format(new Date(w.slotStart), 'MMM d, yyyy')}</span>
+                        <span className="date-time">
+                          {format(new Date(w.slotStart), 'HH:mm')}
+                          <span style={{ margin: '0 3px', color: '#94a3b8' }}>–</span>
+                          {format(new Date(w.slotEnd), 'HH:mm')}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="booking-title" style={{ fontSize: 14 }}>{w.title}</div>
+                      {w.purpose && <div className="booking-subtitle">{w.purpose}</div>}
+                    </td>
+                    <td style={{ textAlign: 'center', fontSize: 14, color: '#475569', fontWeight: 500 }}>
+                      {w.expectedAttendees ?? '—'}
+                    </td>
+                    <td>
+                      <span className={`badge ${
+                        w.status === 'WAITING' ? 'badge-yellow' :
+                        w.status === 'PROMOTED' ? 'badge-green' : 'badge-gray'
+                      }`} style={{ gap: 4 }}>
+                        {w.status === 'WAITING' ? <><AlertCircle size={10} /> Waiting</> :
+                         w.status === 'PROMOTED' ? <><CheckCircle2 size={10} /> Pending Booking Created</> :
+                         <><Ban size={10} /> Cancelled</>}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="date-time" style={{ whiteSpace: 'nowrap' }}>
+                        {w.createdAt ? format(new Date(w.createdAt), 'MMM d, HH:mm') : '—'}
+                      </span>
+                    </td>
+                    <td>
+                      {w.status === 'WAITING' ? (
+                        <button className="action-btn action-btn-reject" onClick={() => handleLeaveWaitlist(w.id)}>
+                          <XCircle size={13} /> Leave
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: 12, color: '#94a3b8' }}>—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* ── Calendar view ── */}
       {!loading && viewMode === 'calendar' && (
         <div className="card">
@@ -570,6 +672,7 @@ export default function BookingsPage() {
 
       {/* ── Waitlist Panel ── */}
 
+      {isAdmin && (
       <div style={{ marginTop: 36 }}>
         <div className="section-header">
           <div className="section-header-left">
@@ -605,7 +708,7 @@ export default function BookingsPage() {
               >
                 <option value="">All Statuses</option>
                 <option value="WAITING">Waiting</option>
-                <option value="PROMOTED">Promoted</option>
+                <option value="PROMOTED">Pending Booking Created</option>
                 <option value="CANCELLED">Cancelled</option>
               </select>
             </div>
@@ -619,12 +722,10 @@ export default function BookingsPage() {
             <div className="empty-state" style={{ padding: '40px 20px' }}>
               <Clock size={36} style={{ opacity: 0.25, marginBottom: 12 }} />
               <h3 style={{ fontSize: 15, fontWeight: 600 }}>
-                {isAdmin ? 'No waitlist entries' : 'You have no waitlist entries'}
+                No waitlist entries
               </h3>
               <p style={{ fontSize: 14, marginTop: 4 }}>
-                {isAdmin
-                  ? 'No one is currently waiting for any resource.'
-                  : 'Click a booked slot in the slot picker to join a waitlist.'}
+                No one is currently waiting for any resource.
               </p>
             </div>
           </div>
@@ -711,7 +812,7 @@ export default function BookingsPage() {
                             w.status === 'PROMOTED' ? 'badge-green'  : 'badge-gray'
                           }`} style={{ gap: 4 }}>
                             {w.status === 'WAITING'  ? <><AlertCircle size={10} /> Waiting</>  :
-                             w.status === 'PROMOTED' ? <><CheckCircle2 size={10} /> Promoted</> :
+                             w.status === 'PROMOTED' ? <><CheckCircle2 size={10} /> Pending Booking Created</> :
                              <><Ban size={10} /> Cancelled</>}
                           </span>
                         </td>
@@ -740,6 +841,7 @@ export default function BookingsPage() {
           </div>
         )}
       </div>
+      )}
 
       {/* ── Edit Booking Modal ── */}
       {editBooking && (
@@ -886,6 +988,54 @@ export default function BookingsPage() {
                 </div>
               </div>
 
+              {isAdmin && (
+                detailBooking.approvedAt || detailBooking.approvedBy ||
+                detailBooking.rejectedAt || detailBooking.rejectedBy ||
+                detailBooking.cancelledAt || detailBooking.cancelledBy
+              ) && (
+                <div className="detail-section">
+                  <div className="detail-section-title">Audit Trail</div>
+                  <div className="detail-grid">
+                    {(detailBooking.approvedAt || detailBooking.approvedBy) && (
+                      <>
+                        <DetailRow
+                          label="Approved By"
+                          value={<span style={{ color: '#15803d', fontWeight: 600 }}>{actorName(detailBooking.approvedBy)}</span>}
+                        />
+                        <DetailRow
+                          label="Approved At"
+                          value={formatAuditDate(detailBooking.approvedAt)}
+                        />
+                      </>
+                    )}
+                    {(detailBooking.rejectedAt || detailBooking.rejectedBy) && (
+                      <>
+                        <DetailRow
+                          label="Rejected By"
+                          value={<span style={{ color: '#b91c1c', fontWeight: 600 }}>{actorName(detailBooking.rejectedBy)}</span>}
+                        />
+                        <DetailRow
+                          label="Rejected At"
+                          value={formatAuditDate(detailBooking.rejectedAt)}
+                        />
+                      </>
+                    )}
+                    {(detailBooking.cancelledAt || detailBooking.cancelledBy) && (
+                      <>
+                        <DetailRow
+                          label="Cancelled By"
+                          value={<span style={{ color: '#475569', fontWeight: 600 }}>{actorName(detailBooking.cancelledBy)}</span>}
+                        />
+                        <DetailRow
+                          label="Cancelled At"
+                          value={formatAuditDate(detailBooking.cancelledAt)}
+                        />
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {(detailBooking.rejectionReason || detailBooking.notes) && (
                 <div className="detail-section">
                   <div className="detail-section-title">Notes</div>
@@ -935,6 +1085,19 @@ function StatChip({ label, value, color, bg, borderColor, icon }) {
       <span className="stat-chip-label">{label}</span>
     </div>
   )
+}
+
+function formatAuditDate(value) {
+  if (!value) return null
+  try {
+    return format(new Date(value), 'PPpp')
+  } catch {
+    return value
+  }
+}
+
+function actorName(user) {
+  return user?.name || user?.email || 'â€”'
 }
 
 function DetailRow({ label, value }) {
