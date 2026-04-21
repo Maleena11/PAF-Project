@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Building2, CalendarCheck, Ticket, CheckCircle, Clock, Users, AlertCircle, X, CalendarPlus, MessageSquarePlus, Search, Bell, MapPin, RotateCcw } from 'lucide-react'
+import { Building2, CalendarCheck, Ticket, CheckCircle, Clock, Users, AlertCircle, X, CalendarPlus, MessageSquarePlus, Search, Bell, MapPin, RotateCcw, Zap, ChevronRight, BarChart2, Lock } from 'lucide-react'
 import BookingForm from '../components/BookingForm'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -11,6 +11,11 @@ import StatCard from '../components/StatCard'
 import BookingApprovalQueue from '../components/BookingApprovalQueue'
 import RecentTicketsAdmin from '../components/RecentTicketsAdmin'
 import ResourceUtilizationSummary from '../components/ResourceUtilizationSummary'
+import RoleDistributionCard from '../components/RoleDistributionCard'
+import AuthProviderCard from '../components/AuthProviderCard'
+import AdminAnalytics from '../components/AdminAnalytics'
+import PermissionMatrixCard from '../components/PermissionMatrixCard'
+import AdminHeroBanner from '../components/AdminHeroBanner'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 
@@ -41,6 +46,7 @@ export default function Dashboard() {
   const [resources, setResources] = useState([])
   const [bookings, setBookings] = useState([])
   const [tickets, setTickets] = useState([])
+  const [adminUsers, setAdminUsers] = useState([])
   const [userCount, setUserCount] = useState(null)
   const [loading, setLoading] = useState(true)
   const [errors, setErrors] = useState({})
@@ -49,6 +55,7 @@ export default function Dashboard() {
   const [adminTab, setAdminTab] = useState('overview')
 
   const isAdmin = user?.role === 'ADMIN'
+  const isStaff = user?.role === 'STAFF'
 
   // Tick every second for the countdown — only for students
   useEffect(() => {
@@ -71,7 +78,7 @@ export default function Dashboard() {
   const handleCancelBooking = async (id) => {
     if (!window.confirm('Cancel this booking?')) return
     try {
-      await bookingService.updateStatus(id, 'CANCELLED')
+      await bookingService.cancelOwn(id)
       toast.success('Booking cancelled')
       loadStats()
     } catch (err) {
@@ -90,7 +97,7 @@ export default function Dashboard() {
 
     const bookingCall = isAdmin
       ? bookingService.getAll()
-      : bookingService.getByUser(user.id)
+      : bookingService.getMine()
 
     const loadBookings = bookingCall
       .then(r => setBookings(Array.isArray(r.data) ? r.data : []))
@@ -106,8 +113,15 @@ export default function Dashboard() {
 
     const loadUsers = isAdmin
       ? api.get('/auth/users')
-          .then(r => setUserCount(Array.isArray(r.data) ? r.data.length : 0))
-          .catch(() => setUserCount(0))
+          .then(r => {
+            const users = Array.isArray(r.data) ? r.data : []
+            setAdminUsers(users)
+            setUserCount(users.length)
+          })
+          .catch(() => {
+            setAdminUsers([])
+            setUserCount(0)
+          })
       : Promise.resolve()
 
     Promise.all([loadResources, loadBookings, loadTickets, loadUsers])
@@ -115,7 +129,7 @@ export default function Dashboard() {
         setErrors(errs)
         setLoading(false)
       })
-  }, [user])
+  }, [isAdmin, user?.id])
 
   useEffect(() => { loadStats() }, [loadStats])
 
@@ -142,6 +156,18 @@ export default function Dashboard() {
   ]
 
   const stats = isAdmin ? adminStats : userStats
+  const userRoles = adminUsers.reduce((acc, current) => {
+    const role = current?.role
+    if (role && Object.prototype.hasOwnProperty.call(acc, role)) acc[role] += 1
+    return acc
+  }, { STUDENT: 0, STAFF: 0, ADMIN: 0 })
+
+  const userProviders = adminUsers.reduce((acc, current) => {
+    const provider = String(current?.provider || 'local').toLowerCase()
+    if (provider === 'google') acc.google += 1
+    else acc.local += 1
+    return acc
+  }, { google: 0, local: 0 })
 
   // Countdown targets — student only
   const happeningNow = !isAdmin
@@ -156,10 +182,17 @@ export default function Dashboard() {
 
   return (
     <div>
-      <div className="page-header">
+      {isAdmin && (
+        <AdminHeroBanner
+          icon={BarChart2}
+          title="Admin Dashboard"
+          description="System overview across users, bookings, resources, tickets, and security"
+        />
+      )}
+      {!isAdmin && <div className="page-header">
         <h1>Welcome back, {user?.name?.split(' ')[0]}{isAdmin ? '' : ' 👋'}</h1>
         <p>{isAdmin ? 'System overview — all users and resources.' : "Here's what's happening on campus today."}</p>
-      </div>
+      </div>}
 
       {/* ── Booking Countdown Banner (student only) ── */}
       {happeningNow && (

@@ -7,10 +7,12 @@ const bookingService = {
 
   getByUser: (userId) => api.get(`/bookings/user/${userId}`),
 
+  getMine: () => api.get('/bookings'),
+
   // date: ISO datetime string for start of the day (optional — omit to get all)
   getByResource: (resourceId, date = null) => {
     const params = date ? { date } : {}
-    return api.get(`/bookings/resource/${resourceId}`, { params })
+    return api.get(`/bookings/resource/${resourceId}/slots`, { params })
   },
 
   checkAvailability: (resourceId, startTime, endTime, excludeBookingId = null) => {
@@ -29,8 +31,7 @@ const bookingService = {
     api.patch(`/bookings/${id}/status`, { status, reason }),
 
   // Student cancels their own PENDING or APPROVED booking
-  cancelOwn: (id, userId) =>
-    api.patch(`/bookings/${id}/cancel`, null, { params: { userId } }),
+  cancelOwn: (id) => api.patch(`/bookings/${id}/cancel`),
 
   delete: (id) => api.delete(`/bookings/${id}`),
 

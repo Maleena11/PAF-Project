@@ -8,6 +8,9 @@ import com.smartcampus.model.Booking.RecurrenceRule;
 import com.smartcampus.model.WaitlistEntry.WaitlistStatus;
 import com.smartcampus.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,11 +36,10 @@ public class WaitlistService {
         Resource resource = resourceRepository.findById(dto.getResourceId())
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found: " + dto.getResourceId()));
 
-        User user = userRepository.findById(dto.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + dto.getUserId()));
+        User user = getCurrentUser();
 
         if (waitlistRepository.existsWaitingEntry(
-                dto.getResourceId(), dto.getUserId(), dto.getSlotStart(), dto.getSlotEnd())) {
+                dto.getResourceId(), user.getId(), dto.getSlotStart(), dto.getSlotEnd())) {
             throw new IllegalStateException("You are already on the waitlist for this slot");
         }
 
@@ -61,23 +63,50 @@ public class WaitlistService {
                 "You've joined the waitlist for '" + resource.getName() + "' on "
                 + dto.getSlotStart().toLocalDate()
                 + " (" + fmt(dto.getSlotStart()) + " – " + fmt(dto.getSlotEnd()) + ")."
-                + " You'll be notified automatically if a slot opens up.",
+                + " If a slot opens up, we'll create a pending booking for you and notify you.",
                 Notification.NotificationType.BOOKING,
                 saved.getId());
 
         return saved;
     }
 
-    public List<WaitlistEntry> getUserWaitlist(Long userId) {
+    public List<WaitlistEntry> getCurrentUserWaitlist() {
+        return waitlistRepository.findByUserIdOrderByCreatedAtDesc(getCurrentUser().getId());
+    }
+
+    public List<WaitlistEntry> getAccessibleWaitlistByUser(Long userId) {
+        User currentUser = getCurrentUser();
+        if (!isAdmin(currentUser) && !currentUser.getId().equals(userId)) {
+            throw new AccessDeniedException("Students can only view their own waitlist entries");
+        }
         return waitlistRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }
 
-    public void leaveWaitlist(Long entryId, Long requestingUserId) {
+    public void leaveWaitlist(Long entryId) {
         WaitlistEntry entry = waitlistRepository.findById(entryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Waitlist entry not found: " + entryId));
 
-        if (!entry.getUser().getId().equals(requestingUserId)) {
-            throw new IllegalArgumentException("You can only remove your own waitlist entries");
+        if (!entry.getUser().getId().equals(getCurrentUser().getId())) {
+            throw new AccessDeniedException("You can only remove your own waitlist entries");
+        }
+        if (entry.getStatus() != WaitlistStatus.WAITING) {
+            throw new IllegalStateException("Entry is no longer active");
+        }
+
+        entry.setStatus(WaitlistStatus.CANCELLED);
+        waitlistRepository.save(entry);
+    }
+
+    public void leaveWaitlist(Long entryId, Long userId) {
+        WaitlistEntry entry = waitlistRepository.findById(entryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Waitlist entry not found: " + entryId));
+
+        User currentUser = getCurrentUser();
+        boolean isOwner = entry.getUser().getId().equals(currentUser.getId());
+        boolean matchesRequestedUser = userId != null && entry.getUser().getId().equals(userId);
+
+        if (!isOwner || !matchesRequestedUser) {
+            throw new AccessDeniedException("You can only remove your own waitlist entries");
         }
         if (entry.getStatus() != WaitlistStatus.WAITING) {
             throw new IllegalStateException("Entry is no longer active");
@@ -123,7 +152,7 @@ public class WaitlistService {
 
     /**
      * Called when a booking is cancelled. Promotes the first eligible waitlisted user
-     * by creating an APPROVED booking for them and sending a notification.
+     * by creating a PENDING booking for them and sending a notification.
      */
     public void promoteFromWaitlist(Booking cancelledBooking) {
         List<WaitlistEntry> eligible = waitlistRepository.findEligibleForPromotion(
@@ -190,5 +219,19 @@ public class WaitlistService {
 
     private static String fmt(LocalDateTime dt) {
         return String.format("%02d:%02d", dt.getHour(), dt.getMinute());
+    }
+
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            throw new AccessDeniedException("Authentication is required");
+        }
+
+        return userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new AccessDeniedException("Authenticated user was not found"));
+    }
+
+    private boolean isAdmin(User user) {
+        return user.getRole() == User.Role.ADMIN;
     }
 }
