@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext'
 import ticketService from '../services/ticketService'
 import userService from '../services/userService'
 import TicketForm from '../components/TicketForm'
+import AdminHeroBanner from '../components/AdminHeroBanner'
 import { BACKEND_URL } from '../services/api'
 
 const PRIORITY_CLASS  = { LOW: 'badge-green', MEDIUM: 'badge-blue', HIGH: 'badge-yellow', CRITICAL: 'badge-red' }
@@ -241,7 +242,18 @@ export default function TicketsPage() {
   return (
     <div>
       {/* ── Header ── */}
-      <div className="page-header page-header-row">
+      {isAdmin && (
+        <AdminHeroBanner
+          icon={Ticket}
+          title="Ticket Management"
+          description="Review, assign, and manage all incident and maintenance tickets"
+        >
+          <button className="admin-hero-action-btn" onClick={() => setShowModal(true)}>
+            <Plus size={14} /> New Ticket
+          </button>
+        </AdminHeroBanner>
+      )}
+      {!isAdmin && <div className="page-header page-header-row">
         <div>
           <h1>INCIDENT TICKETS</h1>
           <p style={{ color: '#64748b', marginTop: 2 }}>
@@ -253,7 +265,7 @@ export default function TicketsPage() {
             <Plus size={16} /> New Ticket
           </button>
         )}
-      </div>
+      </div>}
 
       {/* ── Unified Filter + Stats Bar ── */}
       {!isAdmin && !isStaff && (

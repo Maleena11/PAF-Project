@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useNotifications } from '../context/NotificationContext'
 import api from '../services/api'
+import AdminHeroBanner from '../components/AdminHeroBanner'
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -344,14 +345,18 @@ export default function NotificationsPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1>Notifications</h1>
-        <p>
-          {isAdmin
-            ? 'Monitor and manage all system alerts, ticket submissions, and booking activity.'
-            : 'Stay up to date with your bookings and support tickets.'}
-        </p>
-      </div>
+      {isAdmin ? (
+        <AdminHeroBanner
+          icon={Bell}
+          title="Notification Center"
+          description="Monitor and manage booking updates, ticket alerts, and system activity"
+        />
+      ) : (
+        <div className="page-header">
+          <h1>Notifications</h1>
+          <p>Stay up to date with your bookings and support tickets.</p>
+        </div>
+      )}
       <div className="card">
         <NotificationPanel userId={user?.id} role={user?.role} />
       </div>

@@ -2,11 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react'
 import resourceService from '../services/resourceService'
 import bookingService from '../services/bookingService'
 import waitlistService from '../services/waitlistService'
-import { useAuth } from '../context/AuthContext'
 import TimeSlotPicker from './TimeSlotPicker'
 
 export default function BookingForm({ onSubmit, onCancel, initialData = null, bookingId = null }) {
-  const { user } = useAuth()
   const isEditMode = !!bookingId
   const [resources, setResources] = useState([])
   const [availability, setAvailability] = useState(null) // null | true | false
@@ -149,7 +147,6 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null, bo
       try {
         await waitlistService.join({
           resourceId:        Number(form.resourceId),
-          userId:            user.id,
           slotStart:         new Date(waitlistSlot.startTime).toISOString(),
           slotEnd:           new Date(waitlistSlot.endTime).toISOString(),
           title:             form.title,
@@ -169,7 +166,6 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null, bo
         ...form,
         resourceId:        Number(form.resourceId),
         expectedAttendees: Number(form.expectedAttendees),
-        userId:            user.id,
         recurrenceEndDate: form.recurrenceRule !== 'NONE' && form.recurrenceEndDate
           ? form.recurrenceEndDate
           : undefined,
@@ -309,7 +305,7 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null, bo
               {selectedResource?.name} · {form.date} · {fmtSlot(waitlistSlot.startTime)} – {fmtSlot(waitlistSlot.endTime)}
             </div>
             <div style={{ fontSize: 12, marginTop: 4, color: '#92400e' }}>
-              You'll be automatically approved and notified if this slot becomes available.
+              If this slot becomes available, we'll create a pending booking and notify you for admin review.
             </div>
           </div>
           <button
@@ -338,7 +334,7 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null, bo
                 borderRadius: 8, padding: '8px 12px',
               }}>
                 <span style={{ color: '#92400e', fontSize: 13 }}>
-                  Want this slot? Join the waitlist and get notified if it opens up.
+                  Want this slot? Join the waitlist and we'll create a pending booking if it opens up.
                 </span>
                 <button
                   type="button"

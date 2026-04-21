@@ -4,14 +4,15 @@ import { Plus, Search, X, Check, ChevronDown, Building2, MapPin, Users, FlaskCon
 import { useAuth } from '../context/AuthContext'
 import resourceService from '../services/resourceService'
 import { BACKEND_URL } from '../services/api'
+import ResourceList from '../components/ResourceList'
+import ResourceForm from '../components/ResourceForm'
+import AdminHeroBanner from '../components/AdminHeroBanner'
 
 const resolveImageUrl = (url) => {
   if (!url) return null
   if (url.startsWith('http')) return url
   return BACKEND_URL + url
 }
-import ResourceList from '../components/ResourceList'
-import ResourceForm from '../components/ResourceForm'
 
 const TYPE_META = {
   LECTURE_HALL: { label: 'Lecture Hall', Icon: Building2,   color: '#4f46e5', bg: '#e0e7ff' },
@@ -155,17 +156,29 @@ export default function ResourcesPage() {
 
   return (
     <div>
-      <div className="page-header page-header-row">
-        <div>
-          <h1>Campus Resources</h1>
-          <p>Manage all campus facilities and assets</p>
-        </div>
-        {canManage && (
-          <button className="btn btn-primary" onClick={() => { setEditing(null); setShowModal(true) }}>
-            <Plus size={16} /> Add Resource
+      {user?.role === 'ADMIN' ? (
+        <AdminHeroBanner
+          icon={Building2}
+          title="Resource Management"
+          description="Manage all campus facilities, availability, and asset records"
+        >
+          <button className="admin-hero-action-btn" onClick={() => { setEditing(null); setShowModal(true) }}>
+            <Plus size={14} /> Add Resource
           </button>
-        )}
-      </div>
+        </AdminHeroBanner>
+      ) : (
+        <div className="page-header page-header-row">
+          <div>
+            <h1>Campus Resources</h1>
+            <p>Manage all campus facilities and assets</p>
+          </div>
+          {canManage && (
+            <button className="btn btn-primary" onClick={() => { setEditing(null); setShowModal(true) }}>
+              <Plus size={16} /> Add Resource
+            </button>
+          )}
+        </div>
+      )}
 
       {/* ── Stats summary ── */}
       {!loading && (
