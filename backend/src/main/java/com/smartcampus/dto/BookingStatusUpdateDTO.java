@@ -1,6 +1,7 @@
 package com.smartcampus.dto;
 
 import com.smartcampus.model.Booking.BookingStatus;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
@@ -14,4 +15,9 @@ public class BookingStatusUpdateDTO {
 
     // Required only when status is REJECTED
     private String reason;
+
+    @AssertTrue(message = "A reason is required when rejecting a booking")
+    public boolean isReasonPresentWhenRejected() {
+        return status != BookingStatus.REJECTED || (reason != null && !reason.isBlank());
+    }
 }

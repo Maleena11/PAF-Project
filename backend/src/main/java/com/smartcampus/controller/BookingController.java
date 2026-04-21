@@ -2,6 +2,7 @@ package com.smartcampus.controller;
 
 import com.smartcampus.dto.BookingCreationResponseDTO;
 import com.smartcampus.dto.BookingRequestDTO;
+import com.smartcampus.dto.BookingSlotDTO;
 import com.smartcampus.dto.BookingStatusUpdateDTO;
 import com.smartcampus.model.Booking;
 import com.smartcampus.model.Booking.BookingStatus;
@@ -44,9 +45,8 @@ public class BookingController {
         boolean hasFilter = status != null || resourceId != null
                 || userId != null || startDate != null || endDate != null;
 
-        List<Booking> result = hasFilter
-                ? bookingService.getFilteredBookings(status, resourceId, userId, startDate, endDate)
-                : bookingService.getAllBookings();
+        List<Booking> result = bookingService.getAccessibleBookings(
+                status, resourceId, userId, startDate, endDate, hasFilter);
 
         return ResponseEntity.ok(result);
     }
@@ -54,13 +54,13 @@ public class BookingController {
     // GET /api/bookings/{id}
     @GetMapping("/{id}")
     public ResponseEntity<Booking> getBookingById(@PathVariable Long id) {
-        return ResponseEntity.ok(bookingService.getBookingById(id));
+        return ResponseEntity.ok(bookingService.getAccessibleBookingById(id));
     }
 
     // GET /api/bookings/user/{userId}
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<Booking>> getBookingsByUser(@PathVariable Long userId) {
-        return ResponseEntity.ok(bookingService.getBookingsByUser(userId));
+        return ResponseEntity.ok(bookingService.getAccessibleBookingsByUser(userId));
     }
 
     // GET /api/bookings/resource/{resourceId}?date=ISO_DATETIME (date optional)
@@ -68,7 +68,15 @@ public class BookingController {
     public ResponseEntity<List<Booking>> getBookingsByResource(
             @PathVariable Long resourceId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime date) {
-        return ResponseEntity.ok(bookingService.getBookingsByResource(resourceId, date));
+        return ResponseEntity.ok(bookingService.getAccessibleBookingsByResource(resourceId, date));
+    }
+
+    // GET /api/bookings/resource/{resourceId}/slots?date=ISO_DATETIME
+    @GetMapping("/resource/{resourceId}/slots")
+    public ResponseEntity<List<BookingSlotDTO>> getBookingSlotsByResource(
+            @PathVariable Long resourceId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime date) {
+        return ResponseEntity.ok(bookingService.getBookingSlotsByResource(resourceId, date));
     }
 
     // GET /api/bookings/availability?resourceId=&startTime=&endTime=
@@ -92,7 +100,7 @@ public class BookingController {
     // PATCH /api/bookings/{id}/cancel-series  → cancels all future bookings in the series
     @PatchMapping("/{id}/cancel-series")
     public ResponseEntity<Map<String, Integer>> cancelSeries(@PathVariable Long id) {
-        int count = bookingService.cancelSeries(id);
+        int count = bookingService.cancelAccessibleSeries(id);
         return ResponseEntity.ok(Map.of("cancelled", count));
     }
 
@@ -106,17 +114,15 @@ public class BookingController {
 
     // PATCH /api/bookings/{id}/cancel  → student cancels their own PENDING or APPROVED booking
     @PatchMapping("/{id}/cancel")
-    public ResponseEntity<Booking> cancelOwnBooking(
-            @PathVariable Long id,
-            @RequestParam Long userId) {
-        return ResponseEntity.ok(bookingService.cancelOwnBooking(id, userId));
+    public ResponseEntity<Booking> cancelOwnBooking(@PathVariable Long id) {
+        return ResponseEntity.ok(bookingService.cancelAccessibleBooking(id));
     }
 
     // PUT /api/bookings/{id}  → edit/reschedule a PENDING booking (owner only)
     @PutMapping("/{id}")
     public ResponseEntity<Booking> updateBooking(
             @PathVariable Long id,
-            @RequestBody BookingRequestDTO dto) {
+            @Valid @RequestBody BookingRequestDTO dto) {
         return ResponseEntity.ok(bookingService.updateBooking(id, dto));
     }
 
