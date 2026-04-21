@@ -3,7 +3,7 @@ import toast from 'react-hot-toast'
 import {
   Plus, Ticket, MessageSquare, Clock, CheckCircle2,
   XCircle, AlertCircle, ChevronRight, Filter, Image as ImageIcon,
-  MapPin, Phone, User, Wrench, Monitor, Building2, Lock, Sparkles, FileText, Users, Search, X
+  MapPin, Phone, User, Wrench, Monitor, Building2, Lock, Sparkles, FileText, Users, Search, X, Play, PackageOpen
 } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { useAuth } from '../context/AuthContext'
@@ -13,7 +13,7 @@ import TicketForm from '../components/TicketForm'
 import AdminHeroBanner from '../components/AdminHeroBanner'
 import { BACKEND_URL } from '../services/api'
 
-const PRIORITY_CLASS  = { LOW: 'badge-green', MEDIUM: 'badge-blue', HIGH: 'badge-yellow', CRITICAL: 'badge-red' }
+const PRIORITY_CLASS  = { LOW: 'badge-yellow', MEDIUM: 'badge-green', HIGH: 'badge-red', CRITICAL: 'badge-red' }
 const STATUS_CLASS    = { OPEN: 'badge-yellow', IN_PROGRESS: 'badge-blue', RESOLVED: 'badge-green', CLOSED: 'badge-gray', REJECTED: 'badge-red' }
 const PRIORITY_COLOR  = { LOW: '#16a34a', MEDIUM: '#2563eb', HIGH: '#d97706', CRITICAL: '#dc2626' }
 const STATUS_ICON     = {
@@ -267,7 +267,7 @@ export default function TicketsPage() {
   ]
 
   return (
-    <div>
+    <div style={{ width: '100%', overflowX: 'hidden' }}>
       {/* ── Header ── */}
       {isAdmin && (
         <AdminHeroBanner
@@ -396,39 +396,42 @@ export default function TicketsPage() {
         /* ── Staff/Technician View ── */
         <>
           {/* Staff Stats Bar */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 20 }}>
             {[
-              { key: '',            label: 'All Assigned', color: '#2563eb', bg: '#dbeafe', border: '#93c5fd', icon: '📋' },
-              { key: 'OPEN',        label: 'Open',         color: '#ea580c', bg: '#fff7ed', border: '#fb923c', icon: '⚠️' },
-              { key: 'IN_PROGRESS', label: 'In Progress',  color: '#7c3aed', bg: '#ede9fe', border: '#c4b5fd', icon: '⚙️' },
-              { key: 'RESOLVED',    label: 'Resolved',     color: '#16a34a', bg: '#dcfce7', border: '#86efac', icon: '✅' },
-              { key: 'CLOSED',      label: 'Closed',       color: '#475569', bg: '#f1f5f9', border: '#94a3b8', icon: '🔒' },
+              { key: '',            label: 'All Assigned', color: '#2563eb', bg: '#dbeafe', border: '#93c5fd', icon: <FileText size={20} strokeWidth={2.5} /> },
+              { key: 'OPEN',        label: 'Open',         color: '#ea580c', bg: '#fff7ed', border: '#fb923c', icon: <AlertCircle size={20} strokeWidth={2.5} /> },
+              { key: 'IN_PROGRESS', label: 'In Progress',  color: '#7c3aed', bg: '#ede9fe', border: '#c4b5fd', icon: <Clock size={20} strokeWidth={2.5} /> },
+              { key: 'RESOLVED',    label: 'Resolved',     color: '#16a34a', bg: '#dcfce7', border: '#86efac', icon: <CheckCircle2 size={20} strokeWidth={2.5} /> },
+              { key: 'CLOSED',      label: 'Closed',       color: '#475569', bg: '#f1f5f9', border: '#94a3b8', icon: <Lock size={20} strokeWidth={2.5} /> },
             ].map(s => {
               const count = s.key === '' ? tickets.length : tickets.filter(t => t.status === s.key).length
               const active = filterStatus === s.key
               return (
                 <button key={s.key} onClick={() => setFilter(s.key)} style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  gap: 6, padding: '12px 8px', borderRadius: 14, cursor: 'pointer',
-                  border: `2px solid ${active ? s.color : s.border}`,
-                  background: active ? s.color + 'cc' : '#fff',
-                  color: active ? '#fff' : s.color,
-                  boxShadow: active ? `0 6px 18px ${s.color}40` : '0 1px 4px rgba(0,0,0,0.06)',
-                  transition: 'all .18s ease',
-                  transform: active ? 'translateY(-2px)' : 'none',
+                  gap: 4, padding: '16px 8px', borderRadius: 20, cursor: 'pointer',
+                  border: `1.5px solid ${active ? s.color : s.border}`,
+                  background: active ? s.color + '0d' : 'rgba(255, 255, 255, 0.65)',
+                  backdropFilter: 'blur(12px)',
+                  color: active ? s.color : '#475569',
+                  boxShadow: active ? `0 0 0 1px ${s.color}, 0 10px 25px -5px ${s.color}33` : '0 4px 6px -1px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.6)',
+                  transition: 'all .25s cubic-bezier(0.4, 0, 0.2, 1)',
+                  transform: active ? 'translateY(-4px)' : 'none',
                 }}
-                onMouseEnter={e => { if (!active) { e.currentTarget.style.background = s.bg; e.currentTarget.style.transform = 'translateY(-2px)' }}}
-                onMouseLeave={e => { if (!active) { e.currentTarget.style.background = '#fff'; e.currentTarget.style.transform = 'none' }}}>
-                  <span style={{ fontSize: 18 }}>{s.icon}</span>
-                  <span style={{ fontSize: 20, fontWeight: 800 }}>{count}</span>
-                  <span style={{ fontSize: 10, fontWeight: 600, opacity: active ? 0.9 : 0.75, textAlign: 'center' }}>{s.label}</span>
+                onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'rgba(255,255,255,0.9)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 10px 25px -5px ${s.color}20` }}}
+                onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.65)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.6)' }}}>
+                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: active ? s.color : s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: active ? '#fff' : s.color, marginBottom: 4, transition: 'all .25s ease' }}>
+                    {s.icon}
+                  </div>
+                  <span style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>{count}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, opacity: active ? 1 : 0.8, textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.05em', color: active ? s.color : '#64748b' }}>{s.label}</span>
                 </button>
               )
             })}
           </div>
 
           {/* Staff Search Bar */}
-          <div className="toolbar" style={{ marginBottom: 20 }}>
+          <div className="toolbar" style={{ marginBottom: 32 }}>
             <div className="search-box">
               <Search size={15} />
               <input placeholder="Search assigned tickets by title, category or location…" value={search} onChange={e => setSearch(e.target.value)} />
@@ -446,54 +449,117 @@ export default function TicketsPage() {
 
           {/* Staff Table */}
           {displayed.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 0', color: '#94a3b8' }}>
-              <Users size={40} style={{ marginBottom: 12, opacity: 0.4 }} />
-              <p style={{ fontSize: 15, fontWeight: 600, color: '#64748b' }}>No assigned tickets</p>
-              <p style={{ fontSize: 13, marginTop: 4 }}>
-                {filterStatus ? `No ${filterStatus.replace('_', ' ').toLowerCase()} tickets.` : 'You have no tickets assigned to you yet.'}
+            <div style={{ textAlign: 'center', padding: '100px 0', background: 'linear-gradient(to bottom, #f8fafc, #fff)', borderRadius: 24, border: '1px dashed #cbd5e1' }}>
+              <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <PackageOpen size={40} style={{ color: '#3b82f6', opacity: 0.8 }} strokeWidth={1.5} />
+              </div>
+              <p style={{ fontSize: 18, fontWeight: 700, color: '#1e293b' }}>No {filterStatus ? filterStatus.replace('_', ' ').toLowerCase() : 'assigned'} tickets</p>
+              <p style={{ fontSize: 14, marginTop: 6, color: '#64748b', maxWidth: 350, margin: '6px auto 0' }}>
+                {filterStatus ? "You've successfully cleared this entire queue. Great work!" : "You currently have no tickets assigned to you in the system."}
               </p>
             </div>
           ) : (
-            <div className="card">
+            <div style={{ background: '#fff', borderRadius: 24, padding: '32px 24px', border: '1px solid #f1f5f9', boxShadow: '0 20px 40px -15px rgba(0,0,0,0.05), 0 10px 15px -10px rgba(0,0,0,0.02)' }}>
               <div className="table-wrapper">
-                <table>
+                <table style={{ tableLayout: 'fixed', width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr>
-                      <th>#</th><th>Title</th><th>Category</th><th>Priority</th>
-                      <th>Submitted By</th><th>Date</th><th>Status</th><th>Action</th>
+                      <th style={{ width: '5%', paddingBottom: 16, color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>#</th>
+                      <th style={{ width: '25%', paddingBottom: 16, color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Title</th>
+                      <th style={{ width: '11%', paddingBottom: 16, color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Category</th>
+                      <th style={{ width: '9%', paddingBottom: 16, color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Priority</th>
+                      <th style={{ width: '14%', paddingBottom: 16, color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Submitted By</th>
+                      <th style={{ width: '10%', paddingBottom: 16, color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date</th>
+                      <th style={{ width: '13%', paddingBottom: 16, color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
+                      <th style={{ width: '13%', paddingBottom: 16, color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right', paddingRight: 20 }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {displayed.map(t => (
-                      <tr key={t.id} style={{ cursor: 'pointer' }} onClick={() => openDetail(t)}>
-                        <td style={{ color: '#94a3b8' }}>#{t.id}</td>
-                        <td style={{ fontWeight: 500 }}>
-                          {t.imageUrl && <ImageIcon size={13} style={{ marginRight: 4, color: '#94a3b8', verticalAlign: 'middle' }} />}
-                          {t.title}
+                      <tr key={t.id} style={{ cursor: 'pointer', transition: 'all 0.2s ease', borderBottom: '1px solid #f8fafc' }} 
+                        onClick={() => openDetail(t)}
+                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#eef2ff'; const titleNode = e.currentTarget.querySelector('.staff-title-text'); if(titleNode) { titleNode.style.transform = 'translateX(6px)'; titleNode.style.color = '#3730a3'; } }}
+                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; const titleNode = e.currentTarget.querySelector('.staff-title-text'); if(titleNode) { titleNode.style.transform = 'translateX(0)'; titleNode.style.color = '#1e293b'; } }}>
+                        <td style={{ color: '#64748b', padding: '24px 10px', fontSize: 13 }}>#{t.id}</td>
+                        <td style={{ padding: '24px 10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            {t.imageUrl && <ImageIcon size={15} strokeWidth={1.5} style={{ color: '#64748b', flexShrink: 0 }} />}
+                            <span className="staff-title-text" style={{ fontWeight: 600, color: '#1e293b', fontSize: 14, transition: 'all 0.25s ease', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</span>
+                          </div>
                         </td>
-                        <td>{t.category}</td>
-                        <td><span className={`badge ${PRIORITY_CLASS[t.priority] || 'badge-gray'}`}>{t.priority}</span></td>
-                        <td>{t.user?.name}</td>
-                        <td>{format(new Date(t.createdAt), 'MMM d, yyyy')}</td>
-                        <td><span className={`badge ${STATUS_CLASS[t.status] || 'badge-gray'}`}>{t.status.replace('_', ' ')}</span></td>
-                        <td onClick={e => e.stopPropagation()}>
+                        <td style={{ padding: '24px 10px' }}>{(() => { const th = CAT_THEME[t.category] || CAT_THEME.OTHER; return <span style={{ fontSize: 11, fontWeight: 700, color: th.iconBg, background: th.bg, borderRadius: 20, padding: '4px 12px', border: `1px solid ${th.iconBg}33` }}>{t.category}</span> })()}</td>
+                        <td style={{ padding: '24px 10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div style={{ width: 6, height: 6, borderRadius: '50%', background: t.priority === 'HIGH' ? '#ef4444' : t.priority === 'MEDIUM' ? '#eab308' : '#3b82f6', boxShadow: `0 0 8px ${t.priority === 'HIGH' ? '#ef4444' : t.priority === 'MEDIUM' ? '#eab308' : '#3b82f6'}80` }} />
+                            <span style={{ fontSize: 12, fontWeight: 700, color: t.priority === 'HIGH' ? '#dc2626' : t.priority === 'MEDIUM' ? '#ca8a04' : '#2563eb' }}>
+                              {t.priority.charAt(0) + t.priority.slice(1).toLowerCase()}
+                            </span>
+                          </div>
+                        </td>
+                        <td style={{ padding: '24px 10px', color: '#475569', fontSize: 13, fontWeight: 500 }}>{t.user?.name}</td>
+                        <td style={{ padding: '24px 10px', color: '#475569', fontSize: 13, fontWeight: 500 }}>{format(new Date(t.createdAt), 'MMM d, yyyy')}</td>
+                        <td style={{ padding: '24px 10px' }}>
+                          {(() => {
+                            let bg, color, border;
+                            switch(t.status) {
+                              case 'OPEN': bg = '#fff7ed'; color = '#ea580c'; border = '#fed7aa'; break;
+                              case 'IN_PROGRESS': bg = '#faf5ff'; color = '#9333ea'; border = '#e9d5ff'; break;
+                              case 'RESOLVED': bg = '#f0fdf4'; color = '#16a34a'; border = '#bbf7d0'; break;
+                              case 'CLOSED': bg = '#f1f5f9'; color = '#475569'; border = '#cbd5e1'; break;
+                              case 'REJECTED': bg = '#fef2f2'; color = '#dc2626'; border = '#fecaca'; break;
+                              default: bg = '#f8fafc'; color = '#64748b'; border = '#e2e8f0';
+                            }
+                            return (
+                              <span style={{ 
+                                background: bg, color: color, 
+                                border: `1.5px solid ${border}`, 
+                                borderRadius: 20, padding: '5px 14px', 
+                                fontSize: 11, fontWeight: 700, 
+                                letterSpacing: '0.06em', textTransform: 'uppercase',
+                                boxShadow: `0 2px 6px ${color}15`,
+                                whiteSpace: 'nowrap'
+                              }}>
+                                {t.status.replace('_', ' ')}
+                              </span>
+                            )
+                          })()}
+                        </td>
+                        <td style={{ padding: '24px 20px 24px 10px', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                           {t.status === 'OPEN' && (
-                            <button disabled={submittingAction} onClick={() => handleStartWork(t.id)} style={{ padding: '5px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: 'none', background: '#dbeafe', color: '#2563eb', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                              ▶ Start Work
+                            <button disabled={submittingAction} onClick={() => handleStartWork(t.id)} 
+                              style={{ padding: '8px 18px', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #60a5fa', background: 'linear-gradient(135deg, #eff6ff, #dbeafe)', color: '#1d4ed8', display: 'inline-flex', alignItems: 'center', gap: 6, transition: 'all 0.2s ease', boxShadow: '0 2px 10px rgba(59, 130, 246, 0.15)', whiteSpace: 'nowrap' }}
+                              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                              onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+                              <Play size={14} fill="currentColor" /> Start Work
                             </button>
                           )}
                           {t.status === 'IN_PROGRESS' && (
-                            <button disabled={submittingAction} onClick={() => { openDetail(t); setShowResolveModal(true) }} style={{ padding: '5px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: 'none', background: '#dcfce7', color: '#16a34a', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                            <button disabled={submittingAction} onClick={() => { openDetail(t); setShowResolveModal(true) }} 
+                              style={{ padding: '8px 18px', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #86efac', background: '#dcfce7', color: '#166534', display: 'inline-flex', alignItems: 'center', gap: 6, transition: 'all 0.2s ease', boxShadow: '0 2px 10px rgba(34, 197, 94, 0.1)', whiteSpace: 'nowrap' }}
+                              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                              onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
                               ✓ Resolve
                             </button>
                           )}
                           {t.status === 'RESOLVED' && (
-                            <button disabled={submittingAction} onClick={() => handleClose(t.id)} style={{ padding: '5px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: 'none', background: '#f1f5f9', color: '#475569', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                              🔒 Close
+                            <button disabled={submittingAction} onClick={() => handleClose(t.id)} 
+                              style={{ padding: '8px 18px', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #86efac', background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', color: '#166534', display: 'inline-flex', alignItems: 'center', gap: 6, transition: 'all 0.2s ease', boxShadow: '0 2px 10px rgba(34, 197, 94, 0.15)', whiteSpace: 'nowrap' }}
+                              onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)' }}
+                              onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}>
+                              <CheckCircle2 size={15} /> Close
                             </button>
                           )}
-                          {(t.status === 'CLOSED' || t.status === 'REJECTED') && (
-                            <span style={{ fontSize: 12, color: '#94a3b8' }}>—</span>
+                          {t.status === 'CLOSED' && (
+                            <button disabled 
+                              style={{ padding: '8px 18px', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'not-allowed', border: '1.5px solid #cbd5e1', background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)', color: '#475569', display: 'inline-flex', alignItems: 'center', gap: 6, opacity: 0.9, whiteSpace: 'nowrap' }}>
+                              <CheckCircle2 size={15} /> Finalized
+                            </button>
+                          )}
+                          {t.status === 'REJECTED' && (
+                            <button disabled 
+                              style={{ padding: '8px 18px', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'not-allowed', border: '1.5px solid #fca5a5', background: 'linear-gradient(135deg, #fef2f2, #fee2e2)', color: '#b91c1c', display: 'inline-flex', alignItems: 'center', gap: 6, opacity: 0.9, whiteSpace: 'nowrap' }}>
+                              <XCircle size={15} /> Finalized
+                            </button>
                           )}
                         </td>
                       </tr>
@@ -506,7 +572,7 @@ export default function TicketsPage() {
         </>
       ) : isAdmin ? (
         /* ── Admin: Enhanced Dashboard ── */
-        <>
+        <div style={{ paddingBottom: 40 }}>
           {/* ── Summary Stats Cards ── */}
           {(() => {
             const overdue = tickets.filter(t => isOverdue(t))
@@ -516,10 +582,10 @@ export default function TicketsPage() {
               { label: 'In Progress',    value: tickets.filter(t => t.status === 'IN_PROGRESS').length, color: '#7c3aed', bg: '#ede9fe', border: '#c4b5fd', icon: '⚙️' },
               { label: 'Resolved',       value: tickets.filter(t => t.status === 'RESOLVED').length, color: '#16a34a', bg: '#dcfce7', border: '#86efac',  icon: '✅' },
               { label: 'Closed',         value: tickets.filter(t => t.status === 'CLOSED').length,   color: '#475569', bg: '#f1f5f9', border: '#94a3b8',  icon: '🔒' },
-              { label: 'Overdue 🔴',     value: overdue.length,                                       color: '#dc2626', bg: '#fee2e2', border: '#fca5a5',  icon: '🚨' },
+              { label: 'Rejected',       value: tickets.filter(t => t.status === 'REJECTED').length, color: '#dc2626', bg: '#fee2e2', border: '#fca5a5',  icon: '❌' },
             ]
             return (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12, marginBottom: 24 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: 12, marginBottom: 24 }}>
                 {stats.map((s, i) => (
                   <div key={i} style={{ background: '#fff', borderRadius: 16, border: `1.5px solid ${s.border}`, padding: '18px 16px', textAlign: 'center', boxShadow: `0 2px 8px ${s.color}15` }}>
                     <div style={{ fontSize: 22, marginBottom: 6 }}>{s.icon}</div>
@@ -532,7 +598,7 @@ export default function TicketsPage() {
           })()}
 
           {/* ── Admin Search + Filter Toolbar ── */}
-          <div className="toolbar" style={{ marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
+          <div className="toolbar" style={{ marginBottom: 16, flexWrap: 'wrap', gap: 10, padding: '14px 20px', background: '#fff', borderRadius: 14, border: '1px solid #f0f4f8', boxShadow: '0 2px 8px rgba(15,23,42,0.04)' }}>
             <div className="search-box" style={{ minWidth: 220 }}>
               <Search size={15} />
               <input placeholder="Search by ID, title, category…" value={search} onChange={e => setSearch(e.target.value)} />
@@ -598,89 +664,164 @@ export default function TicketsPage() {
           </div>
 
           {/* ── Admin Table ── */}
-          <div className="card" style={{ padding: 0, overflow: 'hidden', border: '1px solid #e8edf2' }}>
-            <div className="table-wrapper">
-              <table>
+          <div style={{ background: '#fff', borderRadius: 18, border: '1px solid #f0f4f8', overflow: 'hidden', boxShadow: '0 4px 24px rgba(15,23,42,0.06)' }}>
+            <div style={{ overflowX: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+                <colgroup>
+                  <col style={{ width: '4%' }} />
+                  <col style={{ width: '17%' }} />
+                  <col style={{ width: '9%' }} />
+                  <col style={{ width: '8%' }} />
+                  <col style={{ width: '11%' }} />
+                  <col style={{ width: '12%' }} />
+                  <col style={{ width: '9%' }} />
+                  <col style={{ width: '6%' }} />
+                  <col style={{ width: '10%' }} />
+                  <col style={{ width: '14%' }} />
+                </colgroup>
                 <thead>
-                  <tr>
-                    <th style={{ width: 42 }}>#</th>
-                    <th>Title</th>
-                    <th>Category</th>
-                    <th>Priority</th>
-                    <th>Submitted By</th>
-                    <th>Assigned To</th>
-                    <th>Date</th>
-                    <th>SLA</th>
-                    <th>Status</th>
-                    <th style={{ width: 160 }}>Actions</th>
+                  <tr style={{ background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)', borderBottom: '2px solid #e8edf2' }}>
+                    {['#','Title','Category','Priority','Submitted By','Assigned To','Date','SLA','Status','Actions'].map((h, i) => (
+                      <th key={i} style={{ padding: i === 0 ? '16px 12px 16px 20px' : i === 9 ? '16px 20px 16px 12px' : '16px 12px', textAlign: 'left', fontSize: 11, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap', borderBottom: 'none', overflow: 'hidden' }}>{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {displayed.length === 0 ? (
                     <tr>
-                      <td colSpan={10} style={{ textAlign: 'center', padding: '48px 0', color: '#94a3b8' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                          <Ticket size={32} style={{ opacity: 0.3 }} />
-                          <span style={{ fontSize: 14, fontWeight: 600 }}>No tickets match your filters</span>
+                      <td colSpan={10} style={{ textAlign: 'center', padding: '64px 0', color: '#94a3b8' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                          <Ticket size={36} style={{ opacity: 0.2 }} />
+                          <span style={{ fontSize: 14, fontWeight: 600, color: '#64748b' }}>No tickets match your filters</span>
+                          <span style={{ fontSize: 12, color: '#94a3b8' }}>Try adjusting your search or filters</span>
                         </div>
                       </td>
                     </tr>
-                  ) : displayed.map(t => {
+                  ) : displayed.map((t, idx) => {
                     const overdue = isOverdue(t)
                     const diffDays = Math.floor((Date.now() - new Date(t.createdAt).getTime()) / (1000 * 60 * 60 * 24))
+                    const SOFT_PRIORITY = {
+                      HIGH:     { bg: '#fef2f2', color: '#dc2626', dot: '#dc2626', label: '↑ HIGH' },
+                      MEDIUM:   { bg: '#f0fdf4', color: '#16a34a', dot: '#16a34a', label: '→ MEDIUM' },
+                      LOW:      { bg: '#fefce8', color: '#ca8a04', dot: '#ca8a04', label: '↓ LOW' },
+                      CRITICAL: { bg: '#fef2f2', color: '#9f1239', dot: '#9f1239', label: '!! CRITICAL' },
+                    }
+                    const SOFT_STATUS = {
+                      OPEN:        { bg: '#fff7ed', color: '#ea580c', border: '#fed7aa' },
+                      IN_PROGRESS: { bg: '#eff6ff', color: '#2563eb', border: '#bfdbfe' },
+                      RESOLVED:    { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' },
+                      CLOSED:      { bg: '#f8fafc', color: '#64748b', border: '#e2e8f0' },
+                      REJECTED:    { bg: '#fef2f2', color: '#dc2626', border: '#fecaca' },
+                    }
+                    const pri = SOFT_PRIORITY[t.priority] || SOFT_PRIORITY.LOW
+                    const sts = SOFT_STATUS[t.status]   || SOFT_STATUS.CLOSED
+                    const th  = CAT_THEME[t.category]   || CAT_THEME.OTHER
                     return (
                       <tr key={t.id}
-                        style={{ cursor: 'pointer', background: overdue ? '#fff8f8' : undefined, transition: 'background .15s' }}
+                        style={{
+                          cursor: 'pointer',
+                          background: overdue ? '#fffbfb' : idx % 2 === 0 ? '#fff' : '#fafbfc',
+                          borderBottom: '1px solid #f1f5f9',
+                          transition: 'all .15s ease',
+                        }}
                         onClick={() => openDetail(t)}
-                        onMouseEnter={e => { if (!overdue) e.currentTarget.style.background = '#f8fafc'; else e.currentTarget.style.background = '#fff1f2' }}
-                        onMouseLeave={e => { e.currentTarget.style.background = overdue ? '#fff8f8' : '' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = overdue ? '#fff1f2' : '#f0f7ff'; e.currentTarget.style.transform = 'scale(1.001)' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = overdue ? '#fffbfb' : idx % 2 === 0 ? '#fff' : '#fafbfc'; e.currentTarget.style.transform = 'scale(1)' }}
                       >
-                        <td style={{ color: '#94a3b8', fontWeight: 600 }}>#{t.id}</td>
-                        <td style={{ fontWeight: 600, maxWidth: 200 }}>
+                        {/* # */}
+                        <td style={{ padding: '20px 12px 20px 20px', whiteSpace: 'nowrap' }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: '#cbd5e1', background: '#f8fafc', borderRadius: 6, padding: '2px 7px', border: '1px solid #e2e8f0' }}>#{t.id}</span>
+                        </td>
+
+                        {/* Title */}
+                        <td style={{ padding: '20px 12px', maxWidth: 180 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            {overdue && <span title="Overdue" style={{ color: '#dc2626', fontSize: 14 }}>🚨</span>}
-                            {t.imageUrl && <ImageIcon size={12} style={{ color: '#94a3b8', flexShrink: 0 }} />}
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>{t.title}</span>
+                            {overdue && <span style={{ fontSize: 12 }} title="Overdue">🚨</span>}
+                            {t.imageUrl && <ImageIcon size={11} style={{ color: '#cbd5e1', flexShrink: 0 }} />}
+                            <span style={{ fontSize: 13, fontWeight: 700, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>{t.title}</span>
                           </div>
                         </td>
-                        <td><span style={{ fontSize: 12, color: '#64748b', background: '#f1f5f9', borderRadius: 6, padding: '2px 8px', fontWeight: 600 }}>{t.category}</span></td>
-                        <td><span className={`badge ${PRIORITY_CLASS[t.priority] || 'badge-gray'}`}>{t.priority}</span></td>
-                        <td style={{ fontSize: 13, color: '#374151' }}>{t.user?.name}</td>
-                        <td>
-                          {t.assignedTo ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
-                                {t.assignedTo.name?.[0]?.toUpperCase()}
-                              </div>
-                              <span style={{ fontSize: 12, color: '#374151', fontWeight: 500 }}>{t.assignedTo.name}</span>
-                            </div>
-                          ) : (
-                            <span style={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }}>Unassigned</span>
-                          )}
+
+                        {/* Category */}
+                        <td style={{ padding: '20px 12px' }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: th.iconBg, background: th.bg, borderRadius: 20, padding: '4px 11px', border: `1px solid ${th.iconBg}28`, letterSpacing: '0.04em' }}>{t.category}</span>
                         </td>
-                        <td style={{ fontSize: 12, color: '#64748b' }}>{format(new Date(t.createdAt), 'MMM d, yyyy')}</td>
-                        <td>
-                          <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: overdue ? '#fee2e2' : diffDays <= 1 ? '#dcfce7' : '#fff7ed', color: overdue ? '#dc2626' : diffDays <= 1 ? '#16a34a' : '#ea580c', border: `1px solid ${overdue ? '#fca5a5' : diffDays <= 1 ? '#86efac' : '#fed7aa'}` }}>
-                            {diffDays === 0 ? 'Today' : diffDays === 1 ? '1d' : `${diffDays}d`}{overdue ? ' ⚠' : ''}
+
+                        {/* Priority — soft pill */}
+                        <td style={{ padding: '20px 12px' }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 800, color: pri.color, background: pri.bg, borderRadius: 20, padding: '4px 11px', letterSpacing: '0.04em' }}>
+                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: pri.dot, flexShrink: 0 }} />
+                            {t.priority}
                           </span>
                         </td>
-                        <td><span className={`badge ${STATUS_CLASS[t.status] || 'badge-gray'}`}>{t.status.replace('_', ' ')}</span></td>
-                        <td onClick={e => e.stopPropagation()}>
+
+                        {/* Submitted By */}
+                        <td style={{ padding: '20px 12px', overflow: 'hidden' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                            <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg, #e0e7ff, #c7d2fe)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: '#4f46e5', flexShrink: 0 }}>
+                              {t.user?.name?.[0]?.toUpperCase()}
+                            </div>
+                            <span style={{ fontSize: 13, color: '#374151', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.user?.name}</span>
+                          </div>
+                        </td>
+
+                        {/* Assigned To */}
+                        <td style={{ padding: '20px 12px', overflow: 'hidden' }}>
+                          {t.assignedTo ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg, #60a5fa, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: '#fff', flexShrink: 0, boxShadow: '0 2px 6px rgba(59,130,246,0.35)' }}>
+                                {t.assignedTo.name?.[0]?.toUpperCase()}
+                              </div>
+                              <span style={{ fontSize: 13, color: '#1e293b', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.assignedTo.name}</span>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', border: '1.5px dashed #cbd5e1', borderRadius: 20, color: '#94a3b8', fontSize: 11, fontWeight: 600 }}>
+                              <User size={11} /> Unassigned
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Date */}
+                        <td style={{ padding: '20px 12px', fontSize: 12, color: '#94a3b8', whiteSpace: 'nowrap', fontWeight: 500 }}>
+                          {format(new Date(t.createdAt), 'MMM d, yyyy')}
+                        </td>
+
+                        {/* SLA */}
+                        <td style={{ padding: '20px 12px' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 64 }}>
+                            <span style={{ fontSize: 11, fontWeight: 800, color: overdue ? '#dc2626' : diffDays <= 1 ? '#16a34a' : '#ea580c' }}>
+                              {diffDays === 0 ? 'Today' : `${diffDays}d`}{overdue ? ' ⚠' : ''}
+                            </span>
+                            <div style={{ height: 4, borderRadius: 4, background: '#f1f5f9', overflow: 'hidden', width: 60 }}>
+                              <div style={{ height: '100%', borderRadius: 4, width: `${Math.min(100, (diffDays / 5) * 100)}%`, background: overdue ? '#dc2626' : diffDays <= 1 ? '#16a34a' : '#f59e0b', transition: 'width .3s' }} />
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Status — soft pill */}
+                        <td style={{ padding: '20px 12px' }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: sts.color, background: sts.bg, border: `1px solid ${sts.border}`, borderRadius: 20, padding: '4px 11px', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+                            {t.status.replace('_', ' ')}
+                          </span>
+                        </td>
+
+                        {/* Actions */}
+                        <td style={{ padding: '20px 20px 20px 12px' }} onClick={e => e.stopPropagation()}>
                           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                            <button
-                              onClick={() => openDetail(t)}
-                              style={{ padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: '1px solid #e2e8f0', background: '#fff', color: '#475569', whiteSpace: 'nowrap' }}
-                            >
-                              View
-                            </button>
+                            <button onClick={() => openDetail(t)}
+                              style={{ padding: '5px 13px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: '1.5px solid #e2e8f0', background: '#fff', color: '#475569', whiteSpace: 'nowrap', transition: 'all .15s' }}
+                              onMouseEnter={e => { e.currentTarget.style.borderColor = '#2563eb'; e.currentTarget.style.color = '#2563eb' }}
+                              onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#475569' }}
+                            >View</button>
+
                             {t.status !== 'CLOSED' && t.status !== 'REJECTED' && (
-                              <button
-                                onClick={() => { setAssignModal(t); setSelectedStaffId(t.assignedTo?.id || '') }}
-                                style={{ padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: 'none', background: '#ede9fe', color: '#7c3aed', whiteSpace: 'nowrap' }}
-                              >
-                                👤 Assign
-                              </button>
+                              <button onClick={() => { setAssignModal(t); setSelectedStaffId(t.assignedTo?.id || '') }}
+                                style={{ padding: '5px 13px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: '1.5px solid #ddd6fe', background: '#f5f3ff', color: '#7c3aed', whiteSpace: 'nowrap', transition: 'all .15s' }}
+                                onMouseEnter={e => { e.currentTarget.style.background = '#ede9fe' }}
+                                onMouseLeave={e => { e.currentTarget.style.background = '#f5f3ff' }}
+                              >👤 Assign</button>
                             )}
+
                             {(t.status === 'CLOSED' || t.status === 'REJECTED') && (
                               <button
                                 onClick={async (e) => {
@@ -693,10 +834,10 @@ export default function TicketsPage() {
                                     } catch (err) { toast.error('Failed to delete ticket') }
                                   }
                                 }}
-                                style={{ padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: 'none', background: '#fee2e2', color: '#dc2626', whiteSpace: 'nowrap' }}
-                              >
-                                🗑️ Delete
-                              </button>
+                                style={{ padding: '5px 13px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: '1.5px solid #fecaca', background: '#fef2f2', color: '#dc2626', whiteSpace: 'nowrap', transition: 'all .15s' }}
+                                onMouseEnter={e => { e.currentTarget.style.background = '#fee2e2' }}
+                                onMouseLeave={e => { e.currentTarget.style.background = '#fef2f2' }}
+                              >🗑 Delete</button>
                             )}
                           </div>
                         </td>
@@ -707,7 +848,7 @@ export default function TicketsPage() {
               </table>
             </div>
           </div>
-        </>
+        </div>
       ) : (
         /* ── Student: Card Grid ── */
         <>
