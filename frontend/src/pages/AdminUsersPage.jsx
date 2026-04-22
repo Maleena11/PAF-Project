@@ -61,6 +61,12 @@ const inputStyle = (err) => ({
   boxSizing: 'border-box',
 })
 
+const ROLE_DESCRIPTIONS = {
+  ADMIN:   'Full system access — user management, analytics, and all admin features',
+  STAFF:   'Approve bookings, manage resources, and view all campus data',
+  STUDENT: 'View resources, submit booking requests, and raise support tickets',
+}
+
 /* ─── Add / Edit Modal ──────────────────────────────── */
 function UserFormModal({ initial, onClose, onSave, saving, isSelf }) {
   const isEdit = !!initial
@@ -71,6 +77,15 @@ function UserFormModal({ initial, onClose, onSave, saving, isSelf }) {
   })
   const [errs, setErrs] = useState({})
   const [touched, setTouched] = useState({})
+
+  /* keyboard shortcuts */
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key === 'Escape' && !saving) onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [saving, onClose])
 
   function validateField(k, v) {
     const val = (v ?? '').trim()
@@ -117,52 +132,126 @@ function UserFormModal({ initial, onClose, onSave, saving, isSelf }) {
     if (validate()) onSave(form)
   }
 
-  const accentColor = isEdit ? '#2563eb' : '#16a34a'
-  const accentBg    = isEdit ? '#dbeafe' : '#dcfce7'
+  const accentColor  = '#2563eb'
+  const headerGrad   = 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%)'
+  const [avBg, avColor] = getAvatarColors(form.name || (initial?.name ?? ''))
+  const roleConfig = ROLE_CFG[form.role]
+
+  const SectionDivider = ({ label }) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 18px' }}>
+      <div style={{ flex: 1, height: 1, background: '#f1f5f9' }} />
+      <span style={{ fontSize: 10, fontWeight: 700, color: '#cbd5e1', letterSpacing: '0.1em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+        {label}
+      </span>
+      <div style={{ flex: 1, height: 1, background: '#f1f5f9' }} />
+    </div>
+  )
 
   return (
     <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && !saving && onClose()}>
-      <div className="modal" style={{ maxWidth: 480, width: '100%' }}>
+      <div className="modal" style={{ maxWidth: 500, width: '100%', padding: 0, overflow: 'hidden' }}>
 
-        {/* Header */}
+        {/* ── Gradient Header ── */}
         <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-          padding: '24px 28px 20px', borderBottom: '1px solid #f1f5f9',
+          background: headerGrad,
+          padding: '22px 26px',
+          position: 'relative', overflow: 'hidden',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{
-              width: 44, height: 44, borderRadius: 12,
-              background: accentBg, border: `1.5px solid ${accentColor}22`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              {isEdit ? <Pencil size={19} color={accentColor} /> : <UserPlus size={19} color={accentColor} />}
+          <div style={{ position: 'absolute', right: -40, top: -40, width: 140, height: 140, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', right: 70, bottom: -50, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative' }}>
+            {/* Avatar + title */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
+              <div style={{
+                width: 54, height: 54, borderRadius: '50%',
+                background: avBg, color: avColor,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontWeight: 800, fontSize: 19,
+                border: '2.5px solid rgba(255,255,255,0.35)',
+                boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
+                flexShrink: 0, transition: 'all 0.2s',
+              }}>
+                {form.name.trim()
+                  ? initials(form.name)
+                  : isEdit
+                    ? <Pencil size={20} color={avColor} />
+                    : <UserPlus size={20} color={avColor} />
+                }
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#fff', letterSpacing: '-0.2px' }}>
+                    {isEdit ? 'Edit User' : 'Add New User'}
+                  </h2>
+                  {isEdit && initial?.provider === 'google' && (
+                    <span style={{
+                      background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)',
+                      color: '#fff', fontSize: 9, fontWeight: 700,
+                      padding: '2px 8px', borderRadius: 20, letterSpacing: '0.07em', textTransform: 'uppercase',
+                    }}>
+                      Google SSO
+                    </span>
+                  )}
+                </div>
+                <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.65)' }}>
+                  {isEdit
+                    ? (form.name.trim() || initial.email)
+                    : 'Create a new campus account'
+                  }
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.2px' }}>
-                {isEdit ? 'Edit User' : 'Add New User'}
-              </h2>
-              <p style={{ margin: '3px 0 0', fontSize: 12, color: '#94a3b8' }}>
-                {isEdit ? `Editing ${initial.name}` : 'Create a new campus account'}
-              </p>
-            </div>
+
+            {/* Close */}
+            <button
+              onClick={onClose} disabled={saving}
+              style={{
+                background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                color: 'rgba(255,255,255,0.8)', padding: 7, borderRadius: 8,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'background 0.12s',
+              }}
+              onMouseEnter={e => { if (!saving) e.currentTarget.style.background = 'rgba(255,255,255,0.22)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)' }}
+            >
+              <X size={15} />
+            </button>
           </div>
-          <button
-            onClick={onClose} disabled={saving}
-            style={{
-              background: '#f1f5f9', border: 'none', cursor: 'pointer',
-              color: '#64748b', padding: 6, borderRadius: 8,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'background 0.12s',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0' }}
-            onMouseLeave={e => { e.currentTarget.style.background = '#f1f5f9' }}
-          >
-            <X size={16} />
-          </button>
+
+          {/* Edit-mode meta strip */}
+          {isEdit && (
+            <div style={{
+              display: 'flex', gap: 0,
+              marginTop: 16, paddingTop: 14,
+              borderTop: '1px solid rgba(255,255,255,0.13)',
+              position: 'relative',
+            }}>
+              {[
+                { label: 'User ID',   value: `#${initial.id}` },
+                { label: 'Provider',  value: initial.provider === 'google' ? 'Google SSO' : 'Local Account' },
+                { label: 'Joined',    value: initial.createdAt ? new Date(initial.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—' },
+              ].map(({ label, value }, i) => (
+                <div key={label} style={{
+                  flex: 1, paddingLeft: i === 0 ? 0 : 14,
+                  borderLeft: i === 0 ? 'none' : '1px solid rgba(255,255,255,0.12)',
+                }}>
+                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>
+                    {label}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>{value}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Body */}
-        <form onSubmit={handleSubmit} style={{ padding: '24px 28px 28px' }}>
+        {/* ── Form Body ── */}
+        <form onSubmit={handleSubmit} style={{ padding: '22px 26px 26px' }}>
+
+          <SectionDivider label="Personal Information" />
+
           <Field label="Full Name" required error={errs.name}>
             <input
               style={inputStyle(errs.name)}
@@ -187,10 +276,13 @@ function UserFormModal({ initial, onClose, onSave, saving, isSelf }) {
           <Field label="Email Address" required={!isEdit} error={errs.email}>
             {isEdit ? (
               <div style={{
-                height: 42, padding: '0 13px', display: 'flex', alignItems: 'center',
-                border: '1.5px solid #e2e8f0', borderRadius: 9, background: '#f1f5f9',
+                height: 42, padding: '0 13px', display: 'flex', alignItems: 'center', gap: 8,
+                border: '1.5px solid #e2e8f0', borderRadius: 9, background: '#f8fafc',
                 fontSize: 14, color: '#94a3b8', userSelect: 'none', boxSizing: 'border-box',
               }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
                 {form.email}
               </div>
             ) : (
@@ -204,29 +296,27 @@ function UserFormModal({ initial, onClose, onSave, saving, isSelf }) {
                 onBlur={e => { blur('email'); e.target.style.borderColor = errs.email ? '#fca5a5' : '#e2e8f0'; e.target.style.boxShadow = 'none' }}
               />
             )}
-            {!isEdit && !errs.email && (
-              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-                Format: letters followed by numbers (e.g. it23636226@gmail.com)
-              </div>
-            )}
-            {isEdit && (
-              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-                Email address cannot be changed after account creation
-              </div>
-            )}
+            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+              {isEdit
+                ? 'Email address cannot be changed after account creation'
+                : !errs.email ? 'Format: letters followed by numbers (e.g. it23636226@gmail.com)' : ''
+              }
+            </div>
           </Field>
+
+          <SectionDivider label="Access Level" />
 
           <Field label="Role">
             {isSelf ? (
               <div style={{
-                padding: '10px 14px', borderRadius: 9, background: '#f8fafc',
+                padding: '11px 14px', borderRadius: 9, background: '#f8fafc',
                 border: '1.5px solid #e2e8f0', fontSize: 13, color: '#94a3b8', fontStyle: 'italic',
               }}>
                 You cannot change your own role
               </div>
             ) : (
               <>
-                <div style={{ display: 'flex', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
                   {ROLES.map(r => {
                     const cfg = ROLE_CFG[r]
                     const active = form.role === r
@@ -238,24 +328,37 @@ function UserFormModal({ initial, onClose, onSave, saving, isSelf }) {
                         onClick={() => !blocked && set('role', r)}
                         title={blocked ? 'Cannot promote directly from Student to Admin. Assign Staff role first.' : undefined}
                         style={{
-                          flex: 1, padding: '11px 0', borderRadius: 10,
+                          flex: 1, padding: '12px 0', borderRadius: 10,
                           cursor: blocked ? 'not-allowed' : 'pointer',
                           border: `2px solid ${active ? cfg.color : '#e2e8f0'}`,
                           background: active ? cfg.bg : blocked ? '#f8fafc' : '#fff',
                           color: active ? cfg.color : blocked ? '#cbd5e1' : '#94a3b8',
                           fontSize: 12, fontWeight: 700,
-                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
                           transition: 'all 0.15s',
-                          boxShadow: active ? `0 2px 8px ${cfg.color}22` : 'none',
-                          opacity: blocked ? 0.5 : 1,
+                          boxShadow: active ? `0 2px 10px ${cfg.color}28` : 'none',
+                          opacity: blocked ? 0.45 : 1,
                         }}
                       >
-                        <cfg.icon size={17} />
+                        <cfg.icon size={18} />
                         {cfg.label}
                       </button>
                     )
                   })}
                 </div>
+
+                {/* Role capability description */}
+                <div style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 8,
+                  padding: '10px 13px', borderRadius: 8,
+                  background: roleConfig.bg + '88',
+                  border: `1px solid ${roleConfig.border}`,
+                  fontSize: 11, color: roleConfig.color, lineHeight: 1.55,
+                }}>
+                  <roleConfig.icon size={12} style={{ marginTop: 1, flexShrink: 0 }} />
+                  <span>{ROLE_DESCRIPTIONS[form.role]}</span>
+                </div>
+
                 {isEdit && initial?.role === 'STUDENT' && (
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: 6,
@@ -269,34 +372,37 @@ function UserFormModal({ initial, onClose, onSave, saving, isSelf }) {
             )}
           </Field>
 
-          {/* Actions */}
+          {/* ── Actions ── */}
           <div style={{
-            display: 'flex', gap: 10, justifyContent: 'flex-end',
-            marginTop: 26, paddingTop: 22, borderTop: '1px solid #f1f5f9',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            marginTop: 24, paddingTop: 18, borderTop: '1px solid #f1f5f9',
           }}>
-            <button
-              type="button" onClick={onClose} disabled={saving}
-              className="btn btn-secondary"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit" disabled={saving}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 7,
-                padding: '9px 22px', borderRadius: 9, border: 'none',
-                background: accentColor, color: '#fff', fontSize: 13, fontWeight: 700,
-                cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1,
-                boxShadow: `0 2px 8px ${accentColor}44`, transition: 'opacity 0.15s',
-              }}
-            >
-              {saving
-                ? <><div className="spinner" style={{ width: 14, height: 14 }} /> Saving…</>
-                : isEdit
-                  ? <><Pencil size={14} /> Save Changes</>
-                  : <><UserPlus size={14} /> Create User</>
-              }
-            </button>
+            <span style={{ fontSize: 11, color: '#d1d5db' }}>Esc to cancel</span>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                type="button" onClick={onClose} disabled={saving}
+                className="btn btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit" disabled={saving}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 7,
+                  padding: '9px 22px', borderRadius: 9, border: 'none',
+                  background: accentColor, color: '#fff', fontSize: 13, fontWeight: 700,
+                  cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1,
+                  boxShadow: `0 2px 10px ${accentColor}44`, transition: 'opacity 0.15s',
+                }}
+              >
+                {saving
+                  ? <><div className="spinner" style={{ width: 14, height: 14 }} /> Saving…</>
+                  : isEdit
+                    ? <><Pencil size={14} /> Save Changes</>
+                    : <><UserPlus size={14} /> Create User</>
+                }
+              </button>
+            </div>
           </div>
         </form>
       </div>
