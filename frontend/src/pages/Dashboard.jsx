@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Building2, CalendarCheck, Ticket, CheckCircle, Clock, Users, AlertCircle, X, CalendarPlus, MessageSquarePlus, Search, Bell, MapPin, RotateCcw } from 'lucide-react'
+import { Building2, CalendarCheck, Ticket, CheckCircle, Clock, Users, AlertCircle, X, CalendarPlus, MessageSquarePlus, Search, Bell, MapPin, RotateCcw, Zap, BarChart2, Lock, ChevronRight } from 'lucide-react'
 import BookingForm from '../components/BookingForm'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -11,6 +11,10 @@ import StatCard from '../components/StatCard'
 import BookingApprovalQueue from '../components/BookingApprovalQueue'
 import RecentTicketsAdmin from '../components/RecentTicketsAdmin'
 import ResourceUtilizationSummary from '../components/ResourceUtilizationSummary'
+import RoleDistributionCard from '../components/RoleDistributionCard'
+import AuthProviderCard from '../components/AuthProviderCard'
+import AdminAnalytics from '../components/AdminAnalytics'
+import PermissionMatrixCard from '../components/PermissionMatrixCard'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 
@@ -42,6 +46,7 @@ export default function Dashboard() {
   const [bookings, setBookings] = useState([])
   const [tickets, setTickets] = useState([])
   const [userCount, setUserCount] = useState(null)
+  const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [errors, setErrors] = useState({})
   const [reBooking, setReBooking] = useState(null) // booking to prefill for rebook
@@ -49,6 +54,7 @@ export default function Dashboard() {
   const [adminTab, setAdminTab] = useState('overview')
 
   const isAdmin = user?.role === 'ADMIN'
+  const isStaff = user?.role === 'STAFF'
 
   // Tick every second for the countdown — only for students
   useEffect(() => {
@@ -106,8 +112,12 @@ export default function Dashboard() {
 
     const loadUsers = isAdmin
       ? api.get('/auth/users')
-          .then(r => setUserCount(Array.isArray(r.data) ? r.data.length : 0))
-          .catch(() => setUserCount(0))
+          .then(r => {
+            const list = Array.isArray(r.data) ? r.data : []
+            setUsers(list)
+            setUserCount(list.length)
+          })
+          .catch(() => { setUsers([]); setUserCount(0) })
       : Promise.resolve()
 
     Promise.all([loadResources, loadBookings, loadTickets, loadUsers])
@@ -120,6 +130,16 @@ export default function Dashboard() {
   useEffect(() => { loadStats() }, [loadStats])
 
   if (loading) return <div className="loading-container"><div className="spinner" /></div>
+
+  const userRoles = {
+    STUDENT: users.filter(u => u.role === 'STUDENT').length,
+    STAFF:   users.filter(u => u.role === 'STAFF').length,
+    ADMIN:   users.filter(u => u.role === 'ADMIN').length,
+  }
+  const userProviders = {
+    google: users.filter(u => u.provider === 'google' || u.authProvider === 'GOOGLE').length,
+    local:  users.filter(u => !u.provider || u.provider === 'local' || u.authProvider === 'LOCAL').length,
+  }
 
   // Derived counts — admin sees system-wide, user sees personal
   const availableResources  = resources.filter(r => r.status === 'AVAILABLE').length
