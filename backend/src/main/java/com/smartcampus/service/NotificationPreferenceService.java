@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.transaction.annotation.Propagation;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +53,7 @@ public class NotificationPreferenceService {
     }
 
     /** Returns true if the user has the given notification type enabled (default: true if no record). */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public boolean isEnabled(Long userId, NotificationType type) {
         return preferenceRepository.findByUserIdAndType(userId, type)
                 .map(NotificationPreference::isEnabled)

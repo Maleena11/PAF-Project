@@ -8,6 +8,7 @@ import com.smartcampus.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
@@ -45,20 +46,25 @@ public class NotificationService {
         notificationRepository.markAllAsReadByUserId(userId);
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Notification createNotification(User user, String title, String message,
                                             NotificationType type, Long referenceId) {
-        if (!notificationPreferenceService.isEnabled(user.getId(), type)) {
+        try {
+            if (!notificationPreferenceService.isEnabled(user.getId(), type)) {
+                return null;
+            }
+            Notification notification = Notification.builder()
+                    .user(user)
+                    .title(title)
+                    .message(message)
+                    .type(type)
+                    .referenceId(referenceId)
+                    .read(false)
+                    .build();
+            return notificationRepository.save(notification);
+        } catch (Exception e) {
             return null;
         }
-        Notification notification = Notification.builder()
-                .user(user)
-                .title(title)
-                .message(message)
-                .type(type)
-                .referenceId(referenceId)
-                .read(false)
-                .build();
-        return notificationRepository.save(notification);
     }
 
     public void deleteNotification(Long id, Long requestingUserId) {

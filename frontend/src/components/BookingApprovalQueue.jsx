@@ -28,8 +28,8 @@ export default function BookingApprovalQueue({ onUpdate }) {
       toast.success('Booking approved')
       load()
       onUpdate?.()
-    } catch {
-      toast.error('Failed to approve booking')
+    } catch (e) {
+      toast.error(e.message || 'Failed to approve booking')
     } finally {
       setActionId(null)
     }
@@ -53,8 +53,8 @@ export default function BookingApprovalQueue({ onUpdate }) {
       setRejectReason('')
       load()
       onUpdate?.()
-    } catch {
-      toast.error('Failed to reject booking')
+    } catch (e) {
+      toast.error(e.message || 'Failed to reject booking')
     } finally {
       setActionId(null)
     }
@@ -62,14 +62,14 @@ export default function BookingApprovalQueue({ onUpdate }) {
 
   return (
     <>
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="booking-table-card">
 
         {/* ── Header ── */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '18px 24px',
-          borderBottom: '1px solid #f1f5f9',
-          background: '#fffbeb',
+          padding: '16px 20px',
+          borderBottom: '1px solid #e2e8f0',
+          background: '#f8fafc',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
@@ -114,88 +114,94 @@ export default function BookingApprovalQueue({ onUpdate }) {
           </div>
         ) : (
           <div className="table-wrapper" style={{ margin: 0 }}>
-            <table style={{ fontSize: 14 }}>
+            <table className="booking-table">
               <thead>
                 <tr>
-                  <th>#</th>
+                  <th style={{ width: 48 }}>#</th>
                   <th>User</th>
                   <th>Resource</th>
                   <th>Purpose</th>
-                  <th>Date / Time</th>
-                  <th>Attendees</th>
-                  <th style={{ textAlign: 'center' }}>Actions</th>
+                  <th>Date &amp; Time</th>
+                  <th style={{ width: 80, textAlign: 'center' }}>Attendees</th>
+                  <th style={{ width: 180, textAlign: 'center' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {bookings.map(b => {
                   const busy = actionId === b.id
                   return (
-                    <tr key={b.id} style={{ background: busy ? '#fafafa' : undefined }}>
+                    <tr key={b.id} className="booking-row booking-row-pending" style={{ opacity: busy ? 0.6 : 1 }}>
 
-                      <td style={{ color: '#94a3b8', fontWeight: 600 }}>#{b.id}</td>
+                      <td>
+                        <span className="row-number">#{b.id}</span>
+                      </td>
 
                       {/* User */}
                       <td>
-                        <div style={{ fontWeight: 600, color: '#1e293b' }}>{b.user?.name ?? '—'}</div>
-                        <div style={{ fontSize: 12, color: '#94a3b8' }}>{b.user?.email}</div>
+                        <div className="user-cell">
+                          <div className="user-avatar-sm">
+                            {(b.user?.name || 'U').charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="booking-title">{b.user?.name ?? '—'}</div>
+                            <div className="booking-subtitle">{b.user?.email}</div>
+                          </div>
+                        </div>
                       </td>
 
                       {/* Resource */}
                       <td>
-                        <div style={{ fontWeight: 500 }}>{b.resource?.name ?? '—'}</div>
-                        <div style={{ fontSize: 12, color: '#94a3b8' }}>{b.resource?.type}</div>
+                        <span className="resource-chip">{b.resource?.name ?? '—'}</span>
+                        {b.resource?.type && (
+                          <div className="booking-subtitle" style={{ marginTop: 3 }}>{b.resource.type}</div>
+                        )}
                       </td>
 
-                      {/* Purpose (truncated) */}
+                      {/* Purpose */}
                       <td style={{ maxWidth: 180 }}>
-                        <div style={{
-                          whiteSpace: 'nowrap', overflow: 'hidden',
-                          textOverflow: 'ellipsis', color: '#475569',
-                        }} title={b.purpose}>
-                          {b.purpose}
+                        <div className="booking-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={b.purpose}>
+                          {b.title || b.purpose || '—'}
                         </div>
-                        {b.title && b.title !== b.purpose && (
-                          <div style={{ fontSize: 11, color: '#94a3b8' }}>{b.title}</div>
+                        {b.purpose && b.title !== b.purpose && (
+                          <div className="booking-subtitle">{b.purpose}</div>
                         )}
                       </td>
 
                       {/* Date/Time */}
-                      <td style={{ whiteSpace: 'nowrap' }}>
-                        <div style={{ fontWeight: 500 }}>
-                          {format(new Date(b.startTime), 'MMM d, yyyy')}
-                        </div>
-                        <div style={{ fontSize: 12, color: '#64748b' }}>
-                          {format(new Date(b.startTime), 'HH:mm')} – {format(new Date(b.endTime), 'HH:mm')}
+                      <td>
+                        <div className="datetime-cell">
+                          <span className="date-primary">{format(new Date(b.startTime), 'MMM d, yyyy')}</span>
+                          <span className="date-time">
+                            {format(new Date(b.startTime), 'HH:mm')}
+                            <span style={{ margin: '0 3px', color: '#94a3b8' }}>–</span>
+                            {format(new Date(b.endTime), 'HH:mm')}
+                          </span>
                         </div>
                       </td>
 
                       {/* Attendees */}
-                      <td style={{ textAlign: 'center' }}>
+                      <td style={{ textAlign: 'center', fontSize: 14, color: '#475569', fontWeight: 500 }}>
                         {b.expectedAttendees ?? '—'}
                       </td>
 
                       {/* Actions */}
                       <td>
-                        <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+                        <div className="action-cell" style={{ justifyContent: 'center' }}>
                           <button
-                            className="btn btn-sm btn-success"
+                            className="action-btn action-btn-approve"
                             onClick={() => handleApprove(b.id)}
                             disabled={busy}
                             title="Approve"
-                            style={{ display: 'flex', alignItems: 'center', gap: 4 }}
                           >
-                            <CheckCircle size={13} />
-                            Approve
+                            <CheckCircle size={12} /> Approve
                           </button>
                           <button
-                            className="btn btn-sm btn-danger"
+                            className="action-btn action-btn-reject"
                             onClick={() => openReject(b.id)}
                             disabled={busy}
                             title="Reject"
-                            style={{ display: 'flex', alignItems: 'center', gap: 4 }}
                           >
-                            <XCircle size={13} />
-                            Reject
+                            <XCircle size={12} /> Reject
                           </button>
                         </div>
                       </td>
@@ -210,9 +216,10 @@ export default function BookingApprovalQueue({ onUpdate }) {
         {/* ── Footer link to full bookings page ── */}
         {!loading && bookings.length > 0 && (
           <div style={{
-            padding: '12px 24px',
-            borderTop: '1px solid #f1f5f9',
+            padding: '12px 20px',
+            borderTop: '1px solid #e2e8f0',
             textAlign: 'right',
+            background: '#f8fafc',
           }}>
             <a href="/bookings" style={{
               fontSize: 12, color: '#2563eb', fontWeight: 600,
