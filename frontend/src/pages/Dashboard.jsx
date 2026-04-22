@@ -55,7 +55,6 @@ export default function Dashboard() {
   const [tickets, setTickets] = useState([])
   const [adminUsers, setAdminUsers] = useState([])
   const [userCount, setUserCount] = useState(null)
-  const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [errors, setErrors] = useState({})
   const [reBooking, setReBooking] = useState(null) // booking to prefill for rebook
@@ -122,13 +121,6 @@ export default function Dashboard() {
     const loadUsers = isAdmin
       ? api.get('/auth/users')
           .then(r => {
-
-            const list = Array.isArray(r.data) ? r.data : []
-            setUsers(list)
-            setUserCount(list.length)
-          })
-          .catch(() => { setUsers([]); setUserCount(0) })
-    
             const users = Array.isArray(r.data) ? r.data : []
             setAdminUsers(users)
             setUserCount(users.length)
@@ -149,16 +141,6 @@ export default function Dashboard() {
   useEffect(() => { loadStats() }, [loadStats])
 
   if (loading) return <div className="loading-container"><div className="spinner" /></div>
-
-  const userRoles = {
-    STUDENT: users.filter(u => u.role === 'STUDENT').length,
-    STAFF:   users.filter(u => u.role === 'STAFF').length,
-    ADMIN:   users.filter(u => u.role === 'ADMIN').length,
-  }
-  const userProviders = {
-    google: users.filter(u => u.provider === 'google' || u.authProvider === 'GOOGLE').length,
-    local:  users.filter(u => !u.provider || u.provider === 'local' || u.authProvider === 'LOCAL').length,
-  }
 
   // Derived counts — admin sees system-wide, user sees personal
   const availableResources  = resources.filter(r => r.status === 'AVAILABLE').length

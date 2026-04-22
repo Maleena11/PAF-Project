@@ -12,19 +12,15 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   try {
-    const stored = localStorage.getItem('smartcampus_user')
-
-    if (stored) {
-      const user = JSON.parse(stored)
-      if (user?.token) config.headers['Authorization'] = `Bearer ${user.token}`
-    }
-  } catch { /* ignore */ }
-
+    const stored = localStorage.getItem(SESSION_KEY)
     const user = stored ? JSON.parse(stored) : null
+
     if (user?.token) {
       config.headers['Authorization'] = `Bearer ${user.token}`
     }
-  } catch {}
+  } catch {
+    // ignore storage failures
+  }
 
   return config
 })
