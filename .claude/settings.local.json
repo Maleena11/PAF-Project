@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(npm install *)",
-      "Bash(npx vite *)"
+      "Bash(npx vite *)",
+      "Bash(grep -E \"\\\\.java$\")",
+      "Bash(xargs grep *)"
     ]
   }
 }
