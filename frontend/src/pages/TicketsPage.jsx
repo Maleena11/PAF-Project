@@ -3,7 +3,7 @@ import toast from 'react-hot-toast'
 import {
   Plus, Ticket, MessageSquare, Clock, CheckCircle2,
   XCircle, AlertCircle, ChevronRight, Filter, Image as ImageIcon,
-  MapPin, Phone, User, Wrench, Monitor, Building2, Lock, Sparkles, FileText, Users, Search, X, Play, PackageOpen
+  MapPin, Phone, User, Wrench, Monitor, Building2, Lock, Sparkles, FileText, Users, Search, X, Play, PackageOpen, Eye
 } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { useAuth } from '../context/AuthContext'
@@ -53,17 +53,17 @@ export default function TicketsPage() {
   const isAdmin = user?.role === 'ADMIN'
   const isStaff = user?.role === 'STAFF'
 
-  const load = () => {
+  const load = (showLoading = true) => {
     if (!user?.id) return Promise.resolve()
-    setLoading(true)
+    if (showLoading) setLoading(true)
     let call
     if (isAdmin) call = ticketService.getAll()
     else if (isStaff) call = ticketService.getAssigned(user.id)
     else call = ticketService.getByUser(user.id)
     return call
       .then(r => setTickets(Array.isArray(r.data) ? r.data : []))
-      .catch(() => toast.error('Failed to load tickets'))
-      .finally(() => setLoading(false))
+      .catch(() => { if (showLoading) toast.error('Failed to load tickets') })
+      .finally(() => { if (showLoading) setLoading(false) })
   }
 
   useEffect(() => {
@@ -73,6 +73,13 @@ export default function TicketsPage() {
         .then(r => setStaffUsers(Array.isArray(r.data) ? r.data : []))
         .catch(() => {})
     }
+
+    // Professional background polling mechanism for real-time automatic updates
+    const interval = setInterval(() => {
+      load(false)
+    }, 10000)
+
+    return () => clearInterval(interval)
   }, [user])
 
   const handleCreate = async (data, file) => {
@@ -489,12 +496,21 @@ export default function TicketsPage() {
                         </td>
                         <td style={{ padding: '24px 10px' }}>{(() => { const th = CAT_THEME[t.category] || CAT_THEME.OTHER; return <span style={{ fontSize: 11, fontWeight: 700, color: th.iconBg, background: th.bg, borderRadius: 20, padding: '4px 12px', border: `1px solid ${th.iconBg}33` }}>{t.category}</span> })()}</td>
                         <td style={{ padding: '24px 10px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <div style={{ width: 6, height: 6, borderRadius: '50%', background: t.priority === 'HIGH' ? '#ef4444' : t.priority === 'MEDIUM' ? '#eab308' : '#3b82f6', boxShadow: `0 0 8px ${t.priority === 'HIGH' ? '#ef4444' : t.priority === 'MEDIUM' ? '#eab308' : '#3b82f6'}80` }} />
-                            <span style={{ fontSize: 12, fontWeight: 700, color: t.priority === 'HIGH' ? '#dc2626' : t.priority === 'MEDIUM' ? '#ca8a04' : '#2563eb' }}>
-                              {t.priority.charAt(0) + t.priority.slice(1).toLowerCase()}
-                            </span>
-                          </div>
+                          {(() => {
+                            let dot, txt;
+                            if (t.priority === 'CRITICAL') { dot = '#e11d48'; txt = '#be123c'; }
+                            else if (t.priority === 'HIGH') { dot = '#ef4444'; txt = '#dc2626'; }
+                            else if (t.priority === 'MEDIUM') { dot = '#22c55e'; txt = '#16a34a'; }
+                            else { dot = '#eab308'; txt = '#ca8a04'; }
+                            return (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <div style={{ width: 6, height: 6, borderRadius: '50%', background: dot, boxShadow: `0 0 8px ${dot}80` }} />
+                                <span style={{ fontSize: 12, fontWeight: 700, color: txt }}>
+                                  {t.priority.charAt(0) + t.priority.slice(1).toLowerCase()}
+                                </span>
+                              </div>
+                            )
+                          })()}
                         </td>
                         <td style={{ padding: '24px 10px', color: '#475569', fontSize: 13, fontWeight: 500 }}>{t.user?.name}</td>
                         <td style={{ padding: '24px 10px', color: '#475569', fontSize: 13, fontWeight: 500 }}>{format(new Date(t.createdAt), 'MMM d, yyyy')}</td>
@@ -503,17 +519,18 @@ export default function TicketsPage() {
                             let bg, color, border;
                             switch(t.status) {
                               case 'OPEN': bg = '#fff7ed'; color = '#ea580c'; border = '#fed7aa'; break;
-                              case 'IN_PROGRESS': bg = '#faf5ff'; color = '#9333ea'; border = '#e9d5ff'; break;
-                              case 'RESOLVED': bg = '#f0fdf4'; color = '#16a34a'; border = '#bbf7d0'; break;
-                              case 'CLOSED': bg = '#f1f5f9'; color = '#475569'; border = '#cbd5e1'; break;
+                              case 'IN_PROGRESS': bg = '#f3e8ff'; color = '#7e22ce'; border = '#d8b4fe'; break;
+                              case 'RESOLVED': bg = '#dcfce7'; color = '#15803d'; border = '#86efac'; break;
+                              case 'CLOSED': bg = '#e2e8f0'; color = '#334155'; border = '#94a3b8'; break;
                               case 'REJECTED': bg = '#fef2f2'; color = '#dc2626'; border = '#fecaca'; break;
                               default: bg = '#f8fafc'; color = '#64748b'; border = '#e2e8f0';
                             }
                             return (
                               <span style={{ 
+                                display: 'inline-flex', justifyContent: 'center', width: 105,
                                 background: bg, color: color, 
                                 border: `1.5px solid ${border}`, 
-                                borderRadius: 20, padding: '5px 14px', 
+                                borderRadius: 20, padding: '5px 0', 
                                 fontSize: 11, fontWeight: 700, 
                                 letterSpacing: '0.06em', textTransform: 'uppercase',
                                 boxShadow: `0 2px 6px ${color}15`,
@@ -527,7 +544,7 @@ export default function TicketsPage() {
                         <td style={{ padding: '24px 20px 24px 10px', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                           {t.status === 'OPEN' && (
                             <button disabled={submittingAction} onClick={() => handleStartWork(t.id)} 
-                              style={{ padding: '8px 18px', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #60a5fa', background: 'linear-gradient(135deg, #eff6ff, #dbeafe)', color: '#1d4ed8', display: 'inline-flex', alignItems: 'center', gap: 6, transition: 'all 0.2s ease', boxShadow: '0 2px 10px rgba(59, 130, 246, 0.15)', whiteSpace: 'nowrap' }}
+                              style={{ padding: '8px 18px', width: 135, justifyContent: 'center', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #60a5fa', background: 'linear-gradient(135deg, #eff6ff, #dbeafe)', color: '#1d4ed8', display: 'inline-flex', alignItems: 'center', gap: 6, transition: 'all 0.2s ease', boxShadow: '0 2px 10px rgba(59, 130, 246, 0.15)', whiteSpace: 'nowrap' }}
                               onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
                               onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
                               <Play size={14} fill="currentColor" /> Start Work
@@ -535,7 +552,7 @@ export default function TicketsPage() {
                           )}
                           {t.status === 'IN_PROGRESS' && (
                             <button disabled={submittingAction} onClick={() => { openDetail(t); setShowResolveModal(true) }} 
-                              style={{ padding: '8px 18px', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #86efac', background: '#dcfce7', color: '#166534', display: 'inline-flex', alignItems: 'center', gap: 6, transition: 'all 0.2s ease', boxShadow: '0 2px 10px rgba(34, 197, 94, 0.1)', whiteSpace: 'nowrap' }}
+                              style={{ padding: '8px 18px', width: 135, justifyContent: 'center', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #86efac', background: '#dcfce7', color: '#166534', display: 'inline-flex', alignItems: 'center', gap: 6, transition: 'all 0.2s ease', boxShadow: '0 2px 10px rgba(34, 197, 94, 0.1)', whiteSpace: 'nowrap' }}
                               onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
                               onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
                               ✓ Resolve
@@ -543,7 +560,7 @@ export default function TicketsPage() {
                           )}
                           {t.status === 'RESOLVED' && (
                             <button disabled={submittingAction} onClick={() => handleClose(t.id)} 
-                              style={{ padding: '8px 18px', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #86efac', background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', color: '#166534', display: 'inline-flex', alignItems: 'center', gap: 6, transition: 'all 0.2s ease', boxShadow: '0 2px 10px rgba(34, 197, 94, 0.15)', whiteSpace: 'nowrap' }}
+                              style={{ padding: '8px 18px', width: 135, justifyContent: 'center', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #86efac', background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', color: '#166534', display: 'inline-flex', alignItems: 'center', gap: 6, transition: 'all 0.2s ease', boxShadow: '0 2px 10px rgba(34, 197, 94, 0.15)', whiteSpace: 'nowrap' }}
                               onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)' }}
                               onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}>
                               <CheckCircle2 size={15} /> Close
@@ -551,13 +568,13 @@ export default function TicketsPage() {
                           )}
                           {t.status === 'CLOSED' && (
                             <button disabled 
-                              style={{ padding: '8px 18px', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'not-allowed', border: '1.5px solid #cbd5e1', background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)', color: '#475569', display: 'inline-flex', alignItems: 'center', gap: 6, opacity: 0.9, whiteSpace: 'nowrap' }}>
+                              style={{ padding: '8px 18px', width: 135, justifyContent: 'center', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'not-allowed', border: '1.5px solid #94a3b8', background: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)', color: '#334155', display: 'inline-flex', alignItems: 'center', gap: 6, opacity: 0.9, whiteSpace: 'nowrap' }}>
                               <CheckCircle2 size={15} /> Finalized
                             </button>
                           )}
                           {t.status === 'REJECTED' && (
                             <button disabled 
-                              style={{ padding: '8px 18px', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'not-allowed', border: '1.5px solid #fca5a5', background: 'linear-gradient(135deg, #fef2f2, #fee2e2)', color: '#b91c1c', display: 'inline-flex', alignItems: 'center', gap: 6, opacity: 0.9, whiteSpace: 'nowrap' }}>
+                              style={{ padding: '8px 18px', width: 135, justifyContent: 'center', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'not-allowed', border: '1.5px solid #fca5a5', background: 'linear-gradient(135deg, #fef2f2, #fee2e2)', color: '#b91c1c', display: 'inline-flex', alignItems: 'center', gap: 6, opacity: 0.9, whiteSpace: 'nowrap' }}>
                               <XCircle size={15} /> Finalized
                             </button>
                           )}
@@ -577,22 +594,52 @@ export default function TicketsPage() {
           {(() => {
             const overdue = tickets.filter(t => isOverdue(t))
             const stats = [
-              { label: 'Total Tickets',  value: tickets.length,                                     color: '#2563eb', bg: '#dbeafe', border: '#93c5fd',  icon: '📋' },
-              { label: 'Open',           value: tickets.filter(t => t.status === 'OPEN').length,     color: '#ea580c', bg: '#fff7ed', border: '#fb923c',  icon: '⚠️' },
-              { label: 'In Progress',    value: tickets.filter(t => t.status === 'IN_PROGRESS').length, color: '#7c3aed', bg: '#ede9fe', border: '#c4b5fd', icon: '⚙️' },
-              { label: 'Resolved',       value: tickets.filter(t => t.status === 'RESOLVED').length, color: '#16a34a', bg: '#dcfce7', border: '#86efac',  icon: '✅' },
-              { label: 'Closed',         value: tickets.filter(t => t.status === 'CLOSED').length,   color: '#475569', bg: '#f1f5f9', border: '#94a3b8',  icon: '🔒' },
-              { label: 'Rejected',       value: tickets.filter(t => t.status === 'REJECTED').length, color: '#dc2626', bg: '#fee2e2', border: '#fca5a5',  icon: '❌' },
+              { label: 'Total Tickets',  value: tickets.length,                                     color: '#2563eb', bg: '#dbeafe', border: '#93c5fd',  icon: '📋', statusKey: '' },
+              { label: 'Open',           value: tickets.filter(t => t.status === 'OPEN').length,     color: '#ea580c', bg: '#fff7ed', border: '#fb923c',  icon: '⚠️', statusKey: 'OPEN' },
+              { label: 'In Progress',    value: tickets.filter(t => t.status === 'IN_PROGRESS').length, color: '#7c3aed', bg: '#ede9fe', border: '#c4b5fd', icon: '⚙️', statusKey: 'IN_PROGRESS' },
+              { label: 'Resolved',       value: tickets.filter(t => t.status === 'RESOLVED').length, color: '#16a34a', bg: '#dcfce7', border: '#86efac',  icon: '✅', statusKey: 'RESOLVED' },
+              { label: 'Closed',         value: tickets.filter(t => t.status === 'CLOSED').length,   color: '#475569', bg: '#f1f5f9', border: '#94a3b8',  icon: '🔒', statusKey: 'CLOSED' },
+              { label: 'Rejected',       value: tickets.filter(t => t.status === 'REJECTED').length, color: '#dc2626', bg: '#fee2e2', border: '#fca5a5',  icon: '❌', statusKey: 'REJECTED' },
             ]
             return (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: 12, marginBottom: 24 }}>
-                {stats.map((s, i) => (
-                  <div key={i} style={{ background: '#fff', borderRadius: 16, border: `1.5px solid ${s.border}`, padding: '18px 16px', textAlign: 'center', boxShadow: `0 2px 8px ${s.color}15` }}>
-                    <div style={{ fontSize: 22, marginBottom: 6 }}>{s.icon}</div>
-                    <div style={{ fontSize: 26, fontWeight: 900, color: s.color, lineHeight: 1, marginBottom: 4 }}>{s.value}</div>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: '#64748b', letterSpacing: '0.04em' }}>{s.label}</div>
-                  </div>
-                ))}
+                {stats.map((s, i) => {
+                  const isActive = filterStatus === s.statusKey
+                  return (
+                    <div key={i} 
+                         onClick={() => setFilter(s.statusKey)}
+                         style={{ 
+                           background: isActive ? s.bg : '#fff', 
+                           borderRadius: 16, 
+                           border: `1.5px solid ${isActive ? s.color : s.border}`, 
+                           padding: '18px 16px', 
+                           textAlign: 'center', 
+                           boxShadow: isActive ? `0 4px 12px ${s.color}25` : `0 2px 8px ${s.color}15`,
+                           cursor: 'pointer',
+                           transition: 'all 0.2s ease',
+                           transform: isActive ? 'translateY(-2px)' : 'none'
+                         }}
+                         onMouseEnter={e => {
+                           if (!isActive) {
+                             e.currentTarget.style.borderColor = s.color
+                             e.currentTarget.style.transform = 'translateY(-2px)'
+                             e.currentTarget.style.boxShadow = `0 4px 12px ${s.color}20`
+                           }
+                         }}
+                         onMouseLeave={e => {
+                           if (!isActive) {
+                             e.currentTarget.style.borderColor = s.border
+                             e.currentTarget.style.transform = 'none'
+                             e.currentTarget.style.boxShadow = `0 2px 8px ${s.color}15`
+                           }
+                         }}
+                    >
+                      <div style={{ fontSize: 22, marginBottom: 6 }}>{s.icon}</div>
+                      <div style={{ fontSize: 26, fontWeight: 900, color: s.color, lineHeight: 1, marginBottom: 4 }}>{s.value}</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: isActive ? s.color : '#64748b', letterSpacing: '0.04em' }}>{s.label}</div>
+                    </div>
+                  )
+                })}
               </div>
             )
           })()}
@@ -665,19 +712,19 @@ export default function TicketsPage() {
 
           {/* ── Admin Table ── */}
           <div style={{ background: '#fff', borderRadius: 18, border: '1px solid #f0f4f8', overflow: 'hidden', boxShadow: '0 4px 24px rgba(15,23,42,0.06)' }}>
-            <div style={{ overflowX: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ minWidth: 1050, width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                 <colgroup>
                   <col style={{ width: '4%' }} />
-                  <col style={{ width: '17%' }} />
-                  <col style={{ width: '9%' }} />
-                  <col style={{ width: '8%' }} />
+                  <col style={{ width: '13%' }} />
+                  <col style={{ width: '10%' }} />
+                  <col style={{ width: '10%' }} />
+                  <col style={{ width: '10%' }} />
                   <col style={{ width: '11%' }} />
-                  <col style={{ width: '12%' }} />
-                  <col style={{ width: '9%' }} />
+                  <col style={{ width: '8%' }} />
                   <col style={{ width: '6%' }} />
                   <col style={{ width: '10%' }} />
-                  <col style={{ width: '14%' }} />
+                  <col style={{ width: '18%' }} />
                 </colgroup>
                 <thead>
                   <tr style={{ background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)', borderBottom: '2px solid #e8edf2' }}>
@@ -699,7 +746,9 @@ export default function TicketsPage() {
                     </tr>
                   ) : displayed.map((t, idx) => {
                     const overdue = isOverdue(t)
-                    const diffDays = Math.floor((Date.now() - new Date(t.createdAt).getTime()) / (1000 * 60 * 60 * 24))
+                    const isActive = t.status !== 'RESOLVED' && t.status !== 'CLOSED' && t.status !== 'REJECTED'
+                    const endDate = isActive ? Date.now() : new Date(t.updatedAt || t.createdAt).getTime()
+                    const diffDays = Math.max(0, Math.floor((endDate - new Date(t.createdAt).getTime()) / (1000 * 60 * 60 * 24)))
                     const SOFT_PRIORITY = {
                       HIGH:     { bg: '#fef2f2', color: '#dc2626', dot: '#dc2626', label: '↑ HIGH' },
                       MEDIUM:   { bg: '#f0fdf4', color: '#16a34a', dot: '#16a34a', label: '→ MEDIUM' },
@@ -708,9 +757,9 @@ export default function TicketsPage() {
                     }
                     const SOFT_STATUS = {
                       OPEN:        { bg: '#fff7ed', color: '#ea580c', border: '#fed7aa' },
-                      IN_PROGRESS: { bg: '#eff6ff', color: '#2563eb', border: '#bfdbfe' },
-                      RESOLVED:    { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' },
-                      CLOSED:      { bg: '#f8fafc', color: '#64748b', border: '#e2e8f0' },
+                      IN_PROGRESS: { bg: '#f3e8ff', color: '#7e22ce', border: '#d8b4fe' },
+                      RESOLVED:    { bg: '#dcfce7', color: '#15803d', border: '#86efac' },
+                      CLOSED:      { bg: '#e2e8f0', color: '#334155', border: '#94a3b8' },
                       REJECTED:    { bg: '#fef2f2', color: '#dc2626', border: '#fecaca' },
                     }
                     const pri = SOFT_PRIORITY[t.priority] || SOFT_PRIORITY.LOW
@@ -730,14 +779,14 @@ export default function TicketsPage() {
                       >
                         {/* # */}
                         <td style={{ padding: '20px 12px 20px 20px', whiteSpace: 'nowrap' }}>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: '#cbd5e1', background: '#f8fafc', borderRadius: 6, padding: '2px 7px', border: '1px solid #e2e8f0' }}>#{t.id}</span>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', background: '#f8fafc', borderRadius: 6, padding: '2px 7px', border: '1px solid #cbd5e1' }}>#{t.id}</span>
                         </td>
 
                         {/* Title */}
                         <td style={{ padding: '20px 12px', maxWidth: 180 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             {overdue && <span style={{ fontSize: 12 }} title="Overdue">🚨</span>}
-                            {t.imageUrl && <ImageIcon size={11} style={{ color: '#cbd5e1', flexShrink: 0 }} />}
+                            {t.imageUrl && <ImageIcon size={11} style={{ color: '#94a3b8', flexShrink: 0 }} />}
                             <span style={{ fontSize: 13, fontWeight: 700, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>{t.title}</span>
                           </div>
                         </td>
@@ -775,7 +824,7 @@ export default function TicketsPage() {
                               <span style={{ fontSize: 13, color: '#1e293b', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.assignedTo.name}</span>
                             </div>
                           ) : (
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', border: '1.5px dashed #cbd5e1', borderRadius: 20, color: '#94a3b8', fontSize: 11, fontWeight: 600 }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', border: '1.5px dashed #93c5fd', background: '#eff6ff', borderRadius: 20, color: '#2563eb', fontSize: 11, fontWeight: 700 }}>
                               <User size={11} /> Unassigned
                             </div>
                           )}
@@ -789,18 +838,18 @@ export default function TicketsPage() {
                         {/* SLA */}
                         <td style={{ padding: '20px 12px' }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 64 }}>
-                            <span style={{ fontSize: 11, fontWeight: 800, color: overdue ? '#dc2626' : diffDays <= 1 ? '#16a34a' : '#ea580c' }}>
-                              {diffDays === 0 ? 'Today' : `${diffDays}d`}{overdue ? ' ⚠' : ''}
+                            <span style={{ fontSize: 11, fontWeight: 800, color: !isActive ? '#94a3b8' : overdue ? '#dc2626' : diffDays <= 1 ? '#16a34a' : '#ea580c' }}>
+                              {diffDays === 0 ? (isActive ? 'Today' : '0d') : `${diffDays}d`}{overdue ? ' ⚠' : ''}
                             </span>
                             <div style={{ height: 4, borderRadius: 4, background: '#f1f5f9', overflow: 'hidden', width: 60 }}>
-                              <div style={{ height: '100%', borderRadius: 4, width: `${Math.min(100, (diffDays / 5) * 100)}%`, background: overdue ? '#dc2626' : diffDays <= 1 ? '#16a34a' : '#f59e0b', transition: 'width .3s' }} />
+                              <div style={{ height: '100%', borderRadius: 4, width: `${Math.min(100, (diffDays / 5) * 100)}%`, background: !isActive ? '#cbd5e1' : overdue ? '#dc2626' : diffDays <= 1 ? '#16a34a' : '#f59e0b', transition: 'width .3s' }} />
                             </div>
                           </div>
                         </td>
 
                         {/* Status — soft pill */}
                         <td style={{ padding: '20px 12px' }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: sts.color, background: sts.bg, border: `1px solid ${sts.border}`, borderRadius: 20, padding: '4px 11px', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+                          <span style={{ display: 'inline-flex', justifyContent: 'center', width: 105, fontSize: 11, fontWeight: 700, color: sts.color, background: sts.bg, border: `1px solid ${sts.border}`, borderRadius: 20, padding: '4px 0', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
                             {t.status.replace('_', ' ')}
                           </span>
                         </td>
@@ -809,10 +858,10 @@ export default function TicketsPage() {
                         <td style={{ padding: '20px 20px 20px 12px' }} onClick={e => e.stopPropagation()}>
                           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                             <button onClick={() => openDetail(t)}
-                              style={{ padding: '5px 13px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: '1.5px solid #e2e8f0', background: '#fff', color: '#475569', whiteSpace: 'nowrap', transition: 'all .15s' }}
-                              onMouseEnter={e => { e.currentTarget.style.borderColor = '#2563eb'; e.currentTarget.style.color = '#2563eb' }}
-                              onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#475569' }}
-                            >View</button>
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 13px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #c7d2fe', background: '#eef2ff', color: '#4f46e5', whiteSpace: 'nowrap', transition: 'all .2s' }}
+                              onMouseEnter={e => { e.currentTarget.style.background = '#4f46e5'; e.currentTarget.style.color = '#ffffff'; e.currentTarget.style.borderColor = '#4f46e5' }}
+                              onMouseLeave={e => { e.currentTarget.style.background = '#eef2ff'; e.currentTarget.style.color = '#4f46e5'; e.currentTarget.style.borderColor = '#c7d2fe' }}
+                            ><Eye size={13} strokeWidth={2.5} /> View</button>
 
                             {t.status !== 'CLOSED' && t.status !== 'REJECTED' && (
                               <button onClick={() => { setAssignModal(t); setSelectedStaffId(t.assignedTo?.id || '') }}
