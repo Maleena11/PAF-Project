@@ -36,7 +36,15 @@ const STATUS_META = {
   RETIRED: { label: 'Retired', dot: '#ef4444', color: '#991b1b', bg: '#fee2e2', border: '#fca5a5', badge: 'badge-red', row: 'resource-row-retired' },
 }
 
-export default function ResourceList({ resources, onEdit, onDelete, onView, canManage, viewMode = 'grid' }) {
+export default function ResourceList({
+  resources,
+  onEdit,
+  onDelete,
+  onView,
+  canManage,
+  viewMode = 'grid',
+  getSuitabilityMeta,
+}) {
   if (!resources.length) {
     return (
       <div className="booking-table-card">
@@ -163,6 +171,7 @@ export default function ResourceList({ resources, onEdit, onDelete, onView, canM
       {resources.map((resource) => {
         const type = TYPE_META[resource.type] || TYPE_META.OTHER
         const status = STATUS_META[resource.status] || STATUS_META.RETIRED
+        const suitability = !canManage && getSuitabilityMeta ? getSuitabilityMeta(resource) : null
         const TypeIcon = type.Icon
 
         return (
@@ -205,6 +214,21 @@ export default function ResourceList({ resources, onEdit, onDelete, onView, canM
                   <span>{resource.capacity} people</span>
                 </div>
               </div>
+
+              {suitability && (
+                <div
+                  className="resource-suitability-card"
+                  style={{
+                    background: suitability.tone.bg,
+                    borderColor: suitability.tone.border,
+                  }}
+                >
+                  <span className="resource-suitability-label">Quick Suitability Score</span>
+                  <span className="resource-suitability-value" style={{ color: suitability.tone.color }}>
+                    {suitability.label}
+                  </span>
+                </div>
+              )}
 
               {resource.description && (
                 <p className="resource-card-desc">

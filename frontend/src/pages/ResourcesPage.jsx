@@ -59,6 +59,73 @@ const TYPE_OPTIONS = [
 
 const ALL_STATUSES = ['AVAILABLE', 'OCCUPIED', 'MAINTENANCE', 'RETIRED']
 
+const getSuitabilityMeta = (resource) => {
+  const capacity = Number(resource?.capacity) || 0
+  const status = resource?.status
+  const type = resource?.type
+
+  if (status === 'MAINTENANCE' || status === 'RETIRED') {
+    return {
+      label: 'Currently unavailable',
+      tone: { color: '#9f1239', bg: '#fff1f2', border: '#fecdd3' },
+    }
+  }
+
+  if (status === 'OCCUPIED') {
+    return {
+      label: 'Popular right now',
+      tone: { color: '#9a3412', bg: '#fff7ed', border: '#fdba74' },
+    }
+  }
+
+  if (type === 'STUDY_ROOM' && capacity <= 8) {
+    return {
+      label: 'Best for group study',
+      tone: { color: '#166534', bg: '#f0fdf4', border: '#86efac' },
+    }
+  }
+
+  if (type === 'MEETING_ROOM' && capacity <= 12) {
+    return {
+      label: 'Best for small meetings',
+      tone: { color: '#115e59', bg: '#f0fdfa', border: '#99f6e4' },
+    }
+  }
+
+  if (type === 'LECTURE_HALL' || type === 'AUDITORIUM' || capacity >= 40) {
+    return {
+      label: 'Best for large events',
+      tone: { color: '#9f1239', bg: '#fff1f2', border: '#fda4af' },
+    }
+  }
+
+  if (capacity <= 4) {
+    return {
+      label: 'Best for focused work',
+      tone: { color: '#1d4ed8', bg: '#eff6ff', border: '#93c5fd' },
+    }
+  }
+
+  if (type === 'LAB') {
+    return {
+      label: 'Best for practical sessions',
+      tone: { color: '#6d28d9', bg: '#f5f3ff', border: '#c4b5fd' },
+    }
+  }
+
+  if (type === 'SPORTS') {
+    return {
+      label: 'Best for active sessions',
+      tone: { color: '#c2410c', bg: '#fff7ed', border: '#fdba74' },
+    }
+  }
+
+  return {
+    label: 'Best for flexible use',
+    tone: { color: '#334155', bg: '#f8fafc', border: '#cbd5e1' },
+  }
+}
+
 export default function ResourcesPage() {
   const { user } = useAuth()
   const [resources, setResources] = useState([])
@@ -499,6 +566,7 @@ export default function ResourcesPage() {
             setShowDetail(true)
           }}
           canManage={canManage}
+          getSuitabilityMeta={getSuitabilityMeta}
         />
       )}
 
@@ -508,6 +576,7 @@ export default function ResourcesPage() {
           const resource = selectedResource
           const type = TYPE_META[resource.type] || TYPE_META.OTHER
           const status = STATUS_META[resource.status] || STATUS_META.RETIRED
+          const suitability = getSuitabilityMeta(resource)
           const TypeIcon = type.Icon
 
           return (
@@ -535,6 +604,19 @@ export default function ResourcesPage() {
                         }}
                       >
                         <span className="resource-chip">{type.label}</span>
+
+                        {!canManage && (
+                          <span
+                            className="resource-suitability-badge"
+                            style={{
+                              background: suitability.tone.bg,
+                              color: suitability.tone.color,
+                              borderColor: suitability.tone.border,
+                            }}
+                          >
+                            {suitability.label}
+                          </span>
+                        )}
 
                         <span
                           className="badge"
@@ -579,6 +661,23 @@ export default function ResourcesPage() {
 
                   <div className="detail-section">
                     <div className="detail-section-title">Details</div>
+                    {!canManage && (
+                      <div
+                        className="resource-suitability-panel"
+                        style={{
+                          background: suitability.tone.bg,
+                          borderColor: suitability.tone.border,
+                        }}
+                      >
+                        <div className="resource-suitability-eyebrow">Quick Suitability Score</div>
+                        <div className="resource-suitability-title" style={{ color: suitability.tone.color }}>
+                          {suitability.label}
+                        </div>
+                        <div className="resource-suitability-copy">
+                          Generated from resource type, capacity, and current availability.
+                        </div>
+                      </div>
+                    )}
                     <div className="detail-grid">
                       <DetailRow label="Type" value={type.label} />
                       <DetailRow label="Location" value={resource.location} />

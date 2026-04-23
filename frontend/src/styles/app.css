@@ -867,6 +867,29 @@ tr:hover td { background: #f8fafc; }
 }
 .resource-meta-row svg { flex-shrink: 0; }
 
+.resource-suitability-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid;
+  border-radius: 10px;
+}
+
+.resource-suitability-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.resource-suitability-value {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
 /* Description */
 .resource-card-desc {
   font-size: 12px; color: #64748b; line-height: 1.5;
@@ -1582,6 +1605,45 @@ tr:hover td { background: #f8fafc; }
   color: #1d4ed8;
   border: 1px solid #bfdbfe;
   white-space: nowrap;
+}
+
+.resource-suitability-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.resource-suitability-panel {
+  border: 1px solid;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+
+.resource-suitability-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.resource-suitability-title {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.resource-suitability-copy {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.5;
 }
 
 .user-cell { display: flex; align-items: center; gap: 8px; }
