@@ -9,6 +9,7 @@ import BookingsPage from './pages/BookingsPage'
 import TicketsPage from './pages/TicketsPage'
 import NotificationsPage from './pages/NotificationsPage'
 import LoginPage from './pages/LoginPage'
+import SignupPage from './pages/SignupPage'
 import AdminUsersPage from './pages/AdminUsersPage'
 import OAuthCallback from './pages/OAuthCallback'
 
@@ -48,6 +49,7 @@ export default function App() {
           <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
           <Routes>
             <Route path="/login"           element={<LoginPage />} />
+            <Route path="/signup"          element={<SignupPage />} />
             <Route path="/oauth2/callback" element={<OAuthCallback />} />
             <Route path="/*"               element={<AppLayout />} />
           </Routes>

@@ -21,6 +21,7 @@ const AVATAR_PALETTE = [
   ['#dbeafe', '#2563eb'], ['#ede9fe', '#7c3aed'], ['#dcfce7', '#16a34a'],
   ['#ffedd5', '#ea580c'], ['#fce7f3', '#db2777'], ['#fef9c3', '#ca8a04'],
 ]
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function getAvatarColors(name = '') {
   const idx = (name.charCodeAt(0) || 0) % AVATAR_PALETTE.length
@@ -71,10 +72,12 @@ const ROLE_DESCRIPTIONS = {
 function UserFormModal({ initial, onClose, onSave, saving, isSelf }) {
   const isEdit = !!initial
   const [form, setForm] = useState({
-    name:  initial?.name  ?? '',
-    email: initial?.email ?? '',
-    role:  initial?.role  ?? 'STUDENT',
+    name:     initial?.name  ?? '',
+    email:    initial?.email ?? '',
+    role:     initial?.role  ?? 'STUDENT',
+    password: '',
   })
+  const [showPassword, setShowPassword] = useState(false)
   const [errs, setErrs] = useState({})
   const [touched, setTouched] = useState({})
 
@@ -100,8 +103,10 @@ function UserFormModal({ initial, onClose, onSave, saving, isSelf }) {
     if (k === 'email') {
       if (!val)                             return 'Email is required'
       if (val.length > 100)                 return 'Email must be 100 characters or fewer'
-      if (!/^[a-z]{2,}[0-9]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(val))
-                                            return 'Email must start with letters followed by numbers (e.g. it23636226@gmail.com)'
+      if (!EMAIL_PATTERN.test(val))         return 'Enter a valid email address'
+    }
+    if (k === 'password') {
+      if (val && val.length < 8)            return 'Password must be at least 8 characters'
     }
     return ''
   }
@@ -118,12 +123,14 @@ function UserFormModal({ initial, onClose, onSave, saving, isSelf }) {
 
   function validate() {
     const e = {}
-    const nameErr  = validateField('name',  form.name)
-    const emailErr = validateField('email', form.email)
-    if (nameErr)  e.name  = nameErr
-    if (emailErr) e.email = emailErr
+    const nameErr     = validateField('name',     form.name)
+    const emailErr    = validateField('email',    form.email)
+    const passwordErr = validateField('password', form.password)
+    if (nameErr)     e.name     = nameErr
+    if (emailErr)    e.email    = emailErr
+    if (passwordErr) e.password = passwordErr
     setErrs(e)
-    setTouched({ name: true, email: true })
+    setTouched({ name: true, email: true, password: true })
     return Object.keys(e).length === 0
   }
 
@@ -288,7 +295,13 @@ function UserFormModal({ initial, onClose, onSave, saving, isSelf }) {
             ) : (
               <input
                 style={inputStyle(errs.email)}
-                placeholder="e.g. it23636226@gmail.com"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                placeholder="e.g. jane.smith@sliit.lk"
                 value={form.email}
                 maxLength={100}
                 onChange={e => set('email', e.target.value)}
@@ -299,10 +312,44 @@ function UserFormModal({ initial, onClose, onSave, saving, isSelf }) {
             <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
               {isEdit
                 ? 'Email address cannot be changed after account creation'
-                : !errs.email ? 'Format: letters followed by numbers (e.g. it23636226@gmail.com)' : ''
+                : !errs.email ? 'Enter the user\'s institutional or campus email address' : ''
               }
             </div>
           </Field>
+
+          {!isEdit && (
+            <Field label="Password" error={errs.password}>
+              <div style={{ position: 'relative' }}>
+                <input
+                  style={inputStyle(errs.password)}
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  placeholder="Set a password (optional)"
+                  value={form.password}
+                  onChange={e => set('password', e.target.value)}
+                  onFocus={e => { e.target.style.borderColor = accentColor; e.target.style.boxShadow = `0 0 0 3px ${accentColor}18` }}
+                  onBlur={e => { blur('password'); e.target.style.borderColor = errs.password ? '#fca5a5' : '#e2e8f0'; e.target.style.boxShadow = 'none' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  style={{
+                    position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                    background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 4,
+                    display: 'flex', alignItems: 'center',
+                  }}
+                >
+                  {showPassword
+                    ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  }
+                </button>
+              </div>
+              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                {!errs.password ? 'Optional — min. 8 characters. Required for email/password login.' : ''}
+              </div>
+            </Field>
+          )}
 
           <SectionDivider label="Access Level" />
 
@@ -371,6 +418,43 @@ function UserFormModal({ initial, onClose, onSave, saving, isSelf }) {
               </>
             )}
           </Field>
+
+          {isEdit && (
+            <>
+              <SectionDivider label="Password" />
+              <Field label="Set New Password" error={errs.password}>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    style={inputStyle(errs.password)}
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    placeholder="Leave blank to keep unchanged"
+                    value={form.password}
+                    onChange={e => set('password', e.target.value)}
+                    onFocus={e => { e.target.style.borderColor = accentColor; e.target.style.boxShadow = `0 0 0 3px ${accentColor}18` }}
+                    onBlur={e => { blur('password'); e.target.style.borderColor = errs.password ? '#fca5a5' : '#e2e8f0'; e.target.style.boxShadow = 'none' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(v => !v)}
+                    style={{
+                      position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                      background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 4,
+                      display: 'flex', alignItems: 'center',
+                    }}
+                  >
+                    {showPassword
+                      ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                      : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    }
+                  </button>
+                </div>
+                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                  {!errs.password ? 'Min. 8 characters. Allows this account to log in with email and password.' : ''}
+                </div>
+              </Field>
+            </>
+          )}
 
           {/* ── Actions ── */}
           <div style={{
