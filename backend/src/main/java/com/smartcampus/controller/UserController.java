@@ -8,6 +8,7 @@ import com.smartcampus.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 import java.util.Optional;
@@ -19,26 +20,39 @@ public class UserController {
 
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     private String currentUserEmail() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         return (auth != null) ? auth.getName() : null;
     }
 
-    // Simple login: match by email, returns JWT token
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
-        String email = body.get("email");
-        if (email == null || email.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Email is required"));
-        }
+        String email    = body.get("email");
+        String password = body.get("password");
 
-        Optional<User> userOpt = userRepository.findByEmail(email.trim().toLowerCase());
+        if (email == null || email.isBlank())
+            return ResponseEntity.badRequest().body(Map.of("message", "Email is required"));
+        if (password == null || password.isBlank())
+            return ResponseEntity.badRequest().body(Map.of("message", "Password is required"));
+
+        String normalizedEmail = email.trim().toLowerCase();
+        Optional<User> userOpt = userRepository.findByEmail(normalizedEmail);
         if (userOpt.isEmpty()) {
-            return ResponseEntity.status(401).body(Map.of("message", "No account found with that email"));
+            return ResponseEntity.status(401).body(Map.of("message", "Invalid email or password"));
         }
 
         User user = userOpt.get();
+        if (user.getPasswordHash() == null) {
+            return ResponseEntity.status(403).body(Map.of(
+                "message", "This account has no password set. Use Google sign-in or ask an admin to set a password."
+            ));
+        }
+        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
+            return ResponseEntity.status(401).body(Map.of("message", "Invalid email or password"));
+        }
+
         String token = jwtUtil.generateToken(user);
         return ResponseEntity.ok(Map.of(
             "token",     token,
@@ -50,30 +64,35 @@ public class UserController {
         ));
     }
 
-    // Login with email + name (auto-register if not found), returns JWT token
-    @PostMapping("/login-or-register")
-    public ResponseEntity<?> loginOrRegister(@RequestBody Map<String, String> body) {
-        String email = body.get("email");
-        String name  = body.get("name");
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody Map<String, String> body) {
+        String name     = body.get("name");
+        String email    = body.get("email");
+        String password = body.get("password");
 
-        if (email == null || email.isBlank()) {
+        if (name == null || name.isBlank())
+            return ResponseEntity.badRequest().body(Map.of("message", "Name is required"));
+        if (email == null || email.isBlank())
             return ResponseEntity.badRequest().body(Map.of("message", "Email is required"));
+        if (password == null || password.length() < 8)
+            return ResponseEntity.badRequest().body(Map.of("message", "Password must be at least 8 characters"));
+
+        String normalizedEmail = email.trim().toLowerCase();
+        if (userRepository.existsByEmail(normalizedEmail)) {
+            return ResponseEntity.badRequest().body(Map.of("message", "An account already exists with that email"));
         }
 
-        User user = userRepository.findByEmail(email.trim().toLowerCase())
-            .orElseGet(() -> {
-                User newUser = User.builder()
-                    .email(email.trim().toLowerCase())
-                    .name(name != null ? name : email.split("@")[0])
-                    .role(User.Role.STUDENT)
-                    .provider("local")
-                    .providerId("local-" + System.currentTimeMillis())
-                    .build();
-                return userRepository.save(newUser);
-            });
+        User user = userRepository.save(User.builder()
+            .name(name.trim())
+            .email(normalizedEmail)
+            .passwordHash(passwordEncoder.encode(password))
+            .role(User.Role.STUDENT)
+            .provider("local")
+            .providerId("local-" + System.currentTimeMillis())
+            .build());
 
         String token = jwtUtil.generateToken(user);
-        return ResponseEntity.ok(Map.of(
+        return ResponseEntity.status(201).body(Map.of(
             "token",     token,
             "id",        user.getId(),
             "name",      user.getName(),
@@ -98,14 +117,17 @@ public class UserController {
 
     @PostMapping("/users")
     public ResponseEntity<?> createUser(@RequestBody Map<String, String> body) {
-        String name    = body.get("name");
-        String email   = body.get("email");
-        String roleStr = body.getOrDefault("role", "STUDENT");
+        String name     = body.get("name");
+        String email    = body.get("email");
+        String roleStr  = body.getOrDefault("role", "STUDENT");
+        String password = body.get("password");
 
         if (name == null || name.isBlank())
             return ResponseEntity.badRequest().body(Map.of("message", "Name is required"));
         if (email == null || email.isBlank())
             return ResponseEntity.badRequest().body(Map.of("message", "Email is required"));
+        if (password != null && !password.isBlank() && password.length() < 8)
+            return ResponseEntity.badRequest().body(Map.of("message", "Password must be at least 8 characters"));
 
         String normalEmail = email.trim().toLowerCase();
         if (userRepository.existsByEmail(normalEmail))
@@ -123,6 +145,7 @@ public class UserController {
             .role(role)
             .provider("local")
             .providerId("admin-" + System.currentTimeMillis())
+            .passwordHash(password != null && !password.isBlank() ? passwordEncoder.encode(password) : null)
             .build();
 
         return ResponseEntity.status(201).body(userRepository.save(user));
@@ -150,6 +173,13 @@ public class UserController {
                     catch (IllegalArgumentException e) {
                         return ResponseEntity.badRequest().<Object>body(Map.of("message", "Invalid role: " + roleStr));
                     }
+                }
+
+                String newPassword = body.get("password");
+                if (newPassword != null && !newPassword.isBlank()) {
+                    if (newPassword.length() < 8)
+                        return ResponseEntity.badRequest().<Object>body(Map.of("message", "Password must be at least 8 characters"));
+                    user.setPasswordHash(passwordEncoder.encode(newPassword));
                 }
 
                 return ResponseEntity.ok((Object) userRepository.save(user));
