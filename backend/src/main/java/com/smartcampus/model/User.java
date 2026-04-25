@@ -35,6 +35,9 @@ public class User {
     @Column(name = "avatar_url")
     private String avatarUrl;
 
+    @Column(name = "password_hash")
+    private String passwordHash;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

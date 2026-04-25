@@ -8,7 +8,6 @@ import bookingService from '../services/bookingService'
 import ticketService from '../services/ticketService'
 import resourceService from '../services/resourceService'
 import analyticsService from '../services/analyticsService'
-import { format, subDays, startOfDay } from 'date-fns'
 
 /* ── colour palettes ── */
 const BOOKING_STATUS_COLORS  = { APPROVED: '#16a34a', PENDING: '#d97706', CANCELLED: '#94a3b8', REJECTED: '#dc2626', COMPLETED: '#2563eb' }
@@ -130,17 +129,6 @@ export default function AdminAnalytics() {
     BOOKING_STATUS_COLORS,
   )
 
-  // 2. Bookings last 14 days (bar)
-  const last14 = Array.from({ length: 14 }, (_, i) => {
-    const day = startOfDay(subDays(new Date(), 13 - i))
-    const label = format(day, 'MMM d')
-    const count = bookings.filter(b => {
-      const d = startOfDay(new Date(b.startTime))
-      return d.getTime() === day.getTime()
-    }).length
-    return { date: label, Bookings: count }
-  })
-
   // 3. Resources by type (bar)
   const resourcesByType = Object.entries(
     resources.reduce((acc, r) => { acc[r.type] = (acc[r.type] || 0) + 1; return acc }, {})
@@ -215,21 +203,8 @@ export default function AdminAnalytics() {
         </button>
       </div>
 
-      {/* ── Row 1: Booking trend (wide) + Bookings by status (pie) ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 16 }}>
-        <ChartCard>
-          <SectionTitle icon={BarChart2} title="Bookings — Last 14 Days" color="#2563eb" />
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={last14} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} interval={1} />
-              <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} allowDecimals={false} />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(37,99,235,0.06)' }} />
-              <Bar dataKey="Bookings" fill="#2563eb" radius={[4, 4, 0, 0]} maxBarSize={28} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
+      {/* ── Row 1: Bookings by status (pie) + Bookings by resource type (bar) ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
         <ChartCard>
           <SectionTitle icon={PieIcon} title="Bookings by Status" color="#2563eb" />
           {bookingsByStatus.length === 0 ? (
@@ -250,9 +225,30 @@ export default function AdminAnalytics() {
             </ResponsiveContainer>
           )}
         </ChartCard>
+
+        <ChartCard>
+          <SectionTitle icon={BarChart2} title="Bookings by Resource Type" color="#ea580c" />
+          {bookingsByType.length === 0 ? (
+            <div style={{ textAlign: 'center', paddingTop: 60, color: '#94a3b8', fontSize: 12 }}>No bookings yet</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={bookingsByType} margin={{ top: 4, right: 8, left: -20, bottom: 30 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <XAxis dataKey="type" tick={{ fontSize: 9, fill: '#94a3b8' }} tickLine={false} axisLine={false} angle={-30} textAnchor="end" />
+                <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(234,88,12,0.06)' }} />
+                <Bar dataKey="Bookings" radius={[4, 4, 0, 0]} maxBarSize={24}>
+                  {bookingsByType.map((_, i) => (
+                    <Cell key={i} fill={RESOURCE_TYPE_COLORS[i % RESOURCE_TYPE_COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </ChartCard>
       </div>
 
-      {/* ── Row 2: Resources by type (bar) + Resources by status (pie) ── */}
+      {/* ── Row 2: Resources by type (bar) + Resource availability (pie) ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
         <ChartCard>
           <SectionTitle icon={BarChart2} title="Resources by Type" color="#7c3aed" />
@@ -297,7 +293,7 @@ export default function AdminAnalytics() {
         </ChartCard>
       </div>
 
-      {/* ── Row 3: Peak Booking Hours (wide) + Top 5 Resources (wide) ── */}
+      {/* ── Row 3: Peak booking hours (bar) + Top 5 resources (bar) ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
         <ChartCard>
           <SectionTitle icon={Clock} title="Peak Booking Hours" color="#0891b2" />
@@ -372,29 +368,8 @@ export default function AdminAnalytics() {
         </ChartCard>
       </div>
 
-      {/* ── Row 4: Bookings by resource type (bar) + Ticket status (pie) + Ticket priority (bar) ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 4 }}>
-        <ChartCard>
-          <SectionTitle icon={BarChart2} title="Bookings by Resource Type" color="#ea580c" />
-          {bookingsByType.length === 0 ? (
-            <div style={{ textAlign: 'center', paddingTop: 60, color: '#94a3b8', fontSize: 12 }}>No bookings yet</div>
-          ) : (
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={bookingsByType} margin={{ top: 4, right: 8, left: -20, bottom: 30 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis dataKey="type" tick={{ fontSize: 9, fill: '#94a3b8' }} tickLine={false} axisLine={false} angle={-30} textAnchor="end" />
-                <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} allowDecimals={false} />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(234,88,12,0.06)' }} />
-                <Bar dataKey="Bookings" radius={[4, 4, 0, 0]} maxBarSize={24}>
-                  {bookingsByType.map((_, i) => (
-                    <Cell key={i} fill={RESOURCE_TYPE_COLORS[i % RESOURCE_TYPE_COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </ChartCard>
-
+      {/* ── Row 4: Tickets by status (pie) + Tickets by priority (bar) ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 4 }}>
         <ChartCard>
           <SectionTitle icon={PieIcon} title="Tickets by Status" color="#d97706" />
           {ticketsByStatus.length === 0 ? (

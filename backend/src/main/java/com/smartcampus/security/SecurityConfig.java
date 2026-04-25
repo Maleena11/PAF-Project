@@ -30,7 +30,7 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
                 // Public: email login endpoints
-                .requestMatchers("/api/auth/login", "/api/auth/login-or-register").permitAll()
+                .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
                 // Public: OAuth2 flow
                 .requestMatchers("/oauth2/**", "/login/oauth2/**", "/error").permitAll()
                 // Public: uploaded files
