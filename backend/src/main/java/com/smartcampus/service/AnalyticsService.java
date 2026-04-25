@@ -43,7 +43,7 @@ public class AnalyticsService {
             result.add(new AnalyticsDTO.TopResourceDTO(
                 ((Number) row[0]).longValue(),
                 (String) row[1],
-                (String) row[2],
+                row[2] != null ? row[2].toString() : null,
                 (String) row[3],
                 ((Number) row[4]).longValue()
             ));
