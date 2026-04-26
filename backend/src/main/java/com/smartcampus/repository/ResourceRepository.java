@@ -13,4 +13,5 @@ public interface ResourceRepository extends JpaRepository<Resource, Long> {
     List<Resource> findByType(ResourceType type);
     List<Resource> findByStatusAndType(ResourceStatus status, ResourceType type);
     List<Resource> findByNameContainingIgnoreCase(String name);
+    boolean existsByNameIgnoreCase(String name);
 }

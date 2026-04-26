@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import {
   Building2, FlaskConical, Users, Dumbbell,
   BookOpen, Mic2, LayoutGrid, CheckCircle2,
-  MapPin, Hash, FileText, ChevronDown
+  MapPin, Hash, FileText, ChevronDown, AlertCircle
 } from 'lucide-react'
 
 const TYPE_OPTIONS = [
@@ -22,7 +22,7 @@ const STATUS_OPTIONS = [
   { value: 'RETIRED', label: 'Retired', dot: '#ef4444', color: '#991b1b', bg: '#fee2e2', border: '#fca5a5' },
 ]
 
-export default function ResourceForm({ initial, onSubmit, onCancel }) {
+export default function ResourceForm({ initial, onSubmit, onCancel, error, onClearError }) {
   const [form, setForm] = useState({
     name: '',
     type: '',
@@ -35,7 +35,10 @@ export default function ResourceForm({ initial, onSubmit, onCancel }) {
   const [typeOpen, setTypeOpen] = useState(false)
   const typeRef = useRef(null)
 
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
+  const set = (k, v) => {
+    onClearError?.()
+    setForm((f) => ({ ...f, [k]: v }))
+  }
 
   useEffect(() => {
     const handler = (e) => {
@@ -68,8 +71,13 @@ export default function ResourceForm({ initial, onSubmit, onCancel }) {
             value={form.name}
             onChange={(e) => set('name', e.target.value.replace(/\b\w/g, (c) => c.toUpperCase()))}
             placeholder="e.g. Lecture Hall A"
-            disabled={!!initial}
           />
+          {error && (
+            <div className="rf-error" role="alert">
+              <AlertCircle size={13} />
+              <span>{error}</span>
+            </div>
+          )}
         </div>
 
         <div className="rf-field rf-field--type" ref={typeRef}>
@@ -85,8 +93,7 @@ export default function ResourceForm({ initial, onSubmit, onCancel }) {
                   type="button"
                   className="rf-type-trigger"
                   style={sel ? { background: sel.bg, color: sel.color, borderColor: sel.border } : {}}
-                  onClick={() => !initial && setTypeOpen((open) => !open)}
-                  disabled={!!initial}
+                  onClick={() => setTypeOpen((open) => !open)}
                 >
                   {sel ? (
                     <>
@@ -157,7 +164,6 @@ export default function ResourceForm({ initial, onSubmit, onCancel }) {
             required
             value={form.location}
             onChange={(e) => set('location', e.target.value)}
-            disabled={!!initial}
           >
             <option value="">Select a location</option>
             <option value="Block A, Ground Floor">Block A, Ground Floor</option>

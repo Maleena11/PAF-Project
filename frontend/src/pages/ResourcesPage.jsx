@@ -138,6 +138,7 @@ export default function ResourcesPage() {
   const [editing, setEditing] = useState(null)
   const [showDetail, setShowDetail] = useState(false)
   const [selectedResource, setSelectedResource] = useState(null)
+  const [formError, setFormError] = useState('')
 
   const canManage = user?.role === 'ADMIN' || user?.role === 'STAFF'
   const badge = user?.role === 'ADMIN' ? 'Admin' : user?.role === 'STAFF' ? 'Staff' : 'Student'
@@ -190,6 +191,7 @@ export default function ResourcesPage() {
   )
 
   const handleSubmit = async (data) => {
+    setFormError('')
     try {
       if (editing) {
         await resourceService.update(editing.id, data)
@@ -203,7 +205,9 @@ export default function ResourcesPage() {
       setEditing(null)
       load()
     } catch (err) {
-      toast.error(err.message || 'Failed to save resource')
+      const message = err.message || 'Failed to save resource'
+      setFormError(message)
+      toast.error(message)
     }
   }
 
@@ -266,6 +270,7 @@ export default function ResourcesPage() {
               className="admin-hero-action-btn"
               onClick={() => {
                 setEditing(null)
+                setFormError('')
                 setShowModal(true)
               }}
             >
@@ -558,6 +563,7 @@ export default function ResourcesPage() {
           viewMode={viewMode}
           onEdit={(resource) => {
             setEditing(resource)
+            setFormError('')
             setShowModal(true)
           }}
           onDelete={handleDelete}
@@ -702,6 +708,7 @@ export default function ResourcesPage() {
                         onClick={() => {
                           setShowDetail(false)
                           setEditing(resource)
+                          setFormError('')
                           setShowModal(true)
                         }}
                       >
@@ -728,7 +735,15 @@ export default function ResourcesPage() {
         })()}
 
       {showModal && (
-        <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && setShowModal(false)}>
+        <div
+          className="modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowModal(false)
+              setFormError('')
+            }
+          }}
+        >
           <div className="modal">
             <div className="modal-header">
               <div>
@@ -749,6 +764,7 @@ export default function ResourcesPage() {
                 onClick={() => {
                   setShowModal(false)
                   setEditing(null)
+                  setFormError('')
                 }}
                 aria-label="Close"
               >
@@ -760,9 +776,12 @@ export default function ResourcesPage() {
               <ResourceForm
                 initial={editing}
                 onSubmit={handleSubmit}
+                error={formError}
+                onClearError={() => setFormError('')}
                 onCancel={() => {
                   setShowModal(false)
                   setEditing(null)
+                  setFormError('')
                 }}
               />
             </div>
