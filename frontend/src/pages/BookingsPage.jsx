@@ -210,6 +210,17 @@ export default function BookingsPage() {
     }
   }
 
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to permanently delete this booking?')) return
+    try {
+      await bookingService.delete(id)
+      toast.success('Booking deleted')
+      load()
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete booking')
+    }
+  }
+
   const handleEdit = async (data) => {
     try {
       const { _bookingId, _waitlist, date, ...rest } = data
@@ -619,7 +630,7 @@ export default function BookingsPage() {
                           {/* Divider + contextual actions */}
                           {(
                             (isAdmin && (b.status === 'PENDING' || b.status === 'APPROVED')) ||
-                            (!isAdmin && (b.status === 'PENDING' || b.status === 'APPROVED'))
+                            (!isAdmin && (b.status === 'PENDING' || b.status === 'APPROVED' || b.status === 'CANCELLED' || b.status === 'REJECTED'))
                           ) && (
                             <>
                               <span className="action-divider" />
@@ -657,6 +668,11 @@ export default function BookingsPage() {
                                 {!isAdmin && b.status === 'APPROVED' && (
                                   <button className="action-btn action-btn-cancel" onClick={() => handleCancel(b.id)}>
                                     <XCircle size={12} /> Cancel
+                                  </button>
+                                )}
+                                {!isAdmin && (b.status === 'CANCELLED' || b.status === 'REJECTED') && (
+                                  <button className="action-btn action-btn-reject" onClick={() => handleDelete(b.id)}>
+                                    <X size={12} /> Delete
                                   </button>
                                 )}
                               </div>
