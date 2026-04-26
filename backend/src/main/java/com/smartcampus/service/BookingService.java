@@ -227,7 +227,7 @@ public class BookingService {
         List<Booking> series = bookingRepository.findSeriesBookings(parentId);
         int cancelled = 0;
         for (Booking b : series) {
-            if (b.getStatus() == BookingStatus.APPROVED) {
+            if (b.getStatus() == BookingStatus.APPROVED || b.getStatus() == BookingStatus.PENDING) {
                 applyCancellationAudit(b, actor);
                 bookingRepository.save(b);
                 cancelled++;
@@ -283,8 +283,8 @@ public class BookingService {
         Booking booking = getBookingById(bookingId);
         User actor = getCurrentUser();
         verifyBookingOwnership(booking);
-        if (booking.getStatus() != BookingStatus.APPROVED) {
-            throw new IllegalStateException("Only APPROVED bookings can be cancelled");
+        if (booking.getStatus() != BookingStatus.APPROVED && booking.getStatus() != BookingStatus.PENDING) {
+            throw new IllegalStateException("Only PENDING or APPROVED bookings can be cancelled");
         }
         applyCancellationAudit(booking, actor);
         Booking updated = bookingRepository.save(booking);
@@ -328,8 +328,22 @@ public class BookingService {
     }
 
     public void deleteBooking(Long id) {
-        verifyManagerAccess();
         Booking booking = getBookingById(id);
+        User actor = getCurrentUser();
+
+        if (isAdminOrStaff(actor)) {
+            bookingRepository.delete(booking);
+            return;
+        }
+
+        if (!booking.getUser().getId().equals(actor.getId())) {
+            throw new AccessDeniedException("Only the booking owner can delete their own bookings");
+        }
+
+        if (booking.getStatus() != BookingStatus.CANCELLED && booking.getStatus() != BookingStatus.REJECTED) {
+             throw new IllegalStateException("Students can only delete cancelled or rejected bookings");
+        }
+
         bookingRepository.delete(booking);
     }
 

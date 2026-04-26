@@ -42,10 +42,9 @@ public class SecurityConfig {
                 // Admin + Staff: create/edit resources
                 .requestMatchers(HttpMethod.POST, "/api/resources").hasAnyRole("ADMIN", "STAFF")
                 .requestMatchers(HttpMethod.PUT, "/api/resources/**").hasAnyRole("ADMIN", "STAFF")
-                // Admin + Staff: delete bookings
-                .requestMatchers(HttpMethod.DELETE, "/api/bookings/**").hasAnyRole("ADMIN", "STAFF")
                 // Any authenticated user: owner-only booking actions are enforced in the service layer
                 .requestMatchers(HttpMethod.PUT, "/api/bookings/**").authenticated()
+                .requestMatchers(HttpMethod.DELETE, "/api/bookings/**").authenticated()
                 .requestMatchers(HttpMethod.PATCH, "/api/bookings/*/cancel", "/api/bookings/*/cancel-series").authenticated()
                 // Admin + Staff: approve / reject / complete bookings
                 .requestMatchers(HttpMethod.PATCH, "/api/bookings/*/status").hasAnyRole("ADMIN", "STAFF")
