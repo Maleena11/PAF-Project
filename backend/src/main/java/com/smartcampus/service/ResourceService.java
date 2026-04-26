@@ -47,6 +47,11 @@ public class ResourceService {
     }
 
     public Resource createResource(Resource resource) {
+        String name = resource.getName() == null ? "" : resource.getName().trim();
+        if (resourceRepository.existsByNameIgnoreCase(name)) {
+            throw new IllegalStateException("A resource with this name already exists");
+        }
+        resource.setName(name);
         return resourceRepository.save(resource);
     }
 
