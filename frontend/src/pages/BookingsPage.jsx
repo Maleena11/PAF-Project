@@ -131,7 +131,10 @@ export default function BookingsPage() {
       setShowForm(false)
       load()
     } catch (err) {
-      toast.error(err.message ||err.message || 'Failed to create booking')
+      if (err.message && err.message.toLowerCase().includes('not available')) {
+        throw err // Let BookingForm intercept this
+      }
+      toast.error(err.message || 'Failed to create booking')
     }
   }
 

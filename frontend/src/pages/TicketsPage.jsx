@@ -914,7 +914,15 @@ export default function TicketsPage() {
 
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 28 }}>
-              {displayed.map(t => <ResourceStyleCard key={t.id} ticket={t} onClick={() => openDetail(t)} />)}
+              {displayed.map(t => (
+                <ResourceStyleCard 
+                  key={t.id} 
+                  ticket={t} 
+                  onClick={() => openDetail(t)} 
+                  onEdit={() => { setSelected(t); setIsEditing(true); }}
+                  onDelete={() => handleDelete(t.id)}
+                />
+              ))}
             </div>
           )}
         </>
@@ -1453,7 +1461,7 @@ const PRIORITY_BORDER = {
 }
 
 /* ── Resource-style Ticket Card ── */
-function ResourceStyleCard({ ticket: t, onClick }) {
+function ResourceStyleCard({ ticket: t, onClick, onEdit, onDelete }) {
   const theme      = CAT_THEME[t.category] || CAT_THEME.OTHER
   const pri        = CARD_PRIORITY[t.priority] || CARD_PRIORITY.MEDIUM
   const isRejected = t.status === 'REJECTED'
@@ -1537,6 +1545,26 @@ function ResourceStyleCard({ ticket: t, onClick }) {
             <Clock size={12} /> {format(new Date(t.createdAt), 'MMM d, yyyy')}
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {t.status === 'OPEN' && onEdit && onDelete && (
+               <>
+                 <button 
+                   onClick={e => { e.stopPropagation(); onEdit(); }} 
+                   style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 8, border: '1.5px solid #e2e8f0', background: '#f8fafc', color: '#475569', cursor: 'pointer', transition: 'all .15s' }}
+                   onMouseEnter={e => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.background = '#f1f5f9' }}
+                   onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.background = '#f8fafc' }}
+                 >
+                   Edit
+                 </button>
+                 <button 
+                   onClick={e => { e.stopPropagation(); onDelete(); }} 
+                   style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 8, border: '1.5px solid #fecaca', background: '#fef2f2', color: '#dc2626', cursor: 'pointer', transition: 'all .15s' }}
+                   onMouseEnter={e => { e.currentTarget.style.borderColor = '#fca5a5'; e.currentTarget.style.background = '#fee2e2' }}
+                   onMouseLeave={e => { e.currentTarget.style.borderColor = '#fecaca'; e.currentTarget.style.background = '#fef2f2' }}
+                 >
+                   Delete
+                 </button>
+               </>
+            )}
             {t.comments?.length > 0 && (
               <span style={{ fontSize: 12, color: '#7c3aed', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3, background: '#f5f3ff', padding: '2px 8px', borderRadius: 20 }}>
                 <MessageSquare size={12} /> {t.comments.length}
