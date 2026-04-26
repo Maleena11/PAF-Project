@@ -147,8 +147,8 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null, bo
       try {
         await waitlistService.join({
           resourceId:        Number(form.resourceId),
-          slotStart:         new Date(waitlistSlot.startTime).toISOString(),
-          slotEnd:           new Date(waitlistSlot.endTime).toISOString(),
+          slotStart:         waitlistSlot.startTime,
+          slotEnd:           waitlistSlot.endTime,
           title:             form.title,
           purpose:           form.purpose,
           expectedAttendees: Number(form.expectedAttendees),
@@ -162,15 +162,23 @@ export default function BookingForm({ onSubmit, onCancel, initialData = null, bo
     } else {
       // ── Normal booking or edit submission ───────────────────────────────
       if (availability === false) return
-      onSubmit({
-        ...form,
-        resourceId:        Number(form.resourceId),
-        expectedAttendees: Number(form.expectedAttendees),
-        recurrenceEndDate: form.recurrenceRule !== 'NONE' && form.recurrenceEndDate
-          ? form.recurrenceEndDate
-          : undefined,
-        ...(isEditMode ? { _bookingId: bookingId } : {}),
-      })
+      try {
+        await onSubmit({
+          ...form,
+          resourceId:        Number(form.resourceId),
+          expectedAttendees: Number(form.expectedAttendees),
+          recurrenceEndDate: form.recurrenceRule !== 'NONE' && form.recurrenceEndDate
+            ? form.recurrenceEndDate
+            : undefined,
+          ...(isEditMode ? { _bookingId: bookingId } : {}),
+        })
+      } catch (err) {
+        if (err.message && err.message.toLowerCase().includes('not available')) {
+          setAvailability(false)
+        } else {
+          throw err // re-throw for BookingsPage to toast
+        }
+      }
     }
   }
 

@@ -360,6 +360,8 @@ tr:hover td { background: #f8fafc; }
 .btn-danger    { background: var(--danger); color: #fff; border-color: var(--danger); }
 .btn-danger:hover:not(:disabled) { background: #b91c1c; }
 .btn-success   { background: var(--success); color: #fff; border-color: var(--success); }
+.btn-waitlist  { background: var(--warning); color: #fff; border-color: var(--warning); }
+.btn-waitlist:hover:not(:disabled) { background: #b45309; }
 .btn-sm { padding: 5px 10px; font-size: 12px; }
 .btn-icon { padding: 6px; border-radius: 6px; }
 

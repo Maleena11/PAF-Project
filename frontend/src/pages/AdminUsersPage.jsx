@@ -93,20 +93,18 @@ function UserFormModal({ initial, onClose, onSave, saving, isSelf }) {
   function validateField(k, v) {
     const val = (v ?? '').trim()
     if (k === 'name') {
-      if (!val)                             return 'Name is required'
-      if (val.length < 2)                   return 'Name must be at least 2 characters'
-      if (val.length > 50)                  return 'Name must be 50 characters or fewer'
-      if (!/^[A-Z]/.test(val))             return 'Name must start with a capital letter (e.g. Jane Smith)'
-      if (!/^[A-Z][a-z]+(\s[A-Z][a-z]+)*$/.test(val))
-                                            return 'Each word must start with a capital letter followed by lowercase letters (e.g. Jane Smith)'
+      if (!val) return 'Full name is required'
+      if (val.length < 3) return 'Full name must be at least 3 characters'
     }
     if (k === 'email') {
-      if (!val)                             return 'Email is required'
-      if (val.length > 100)                 return 'Email must be 100 characters or fewer'
-      if (!EMAIL_PATTERN.test(val))         return 'Enter a valid email address'
+      if (!val) return 'Email is required'
+      if (!/^[a-z]{2,}[0-9]+@(?:my\.)?sliit\.lk$/i.test(val)) {
+        return `Use your campus email in the format it23636226@my.sliit.lk`
+      }
     }
     if (k === 'password') {
-      if (val && val.length < 8)            return 'Password must be at least 8 characters'
+      if (!isEdit && !val) return 'Password is required'
+      if (val && val.length < 8) return 'Password must be at least 8 characters'
     }
     return ''
   }
@@ -255,14 +253,14 @@ function UserFormModal({ initial, onClose, onSave, saving, isSelf }) {
         </div>
 
         {/* ── Form Body ── */}
-        <form onSubmit={handleSubmit} style={{ padding: '22px 26px 26px' }}>
+        <form onSubmit={handleSubmit} style={{ padding: '22px 26px 26px', flex: 1, overflowY: 'auto' }}>
 
           <SectionDivider label="Personal Information" />
 
           <Field label="Full Name" required error={errs.name}>
             <input
               style={inputStyle(errs.name)}
-              placeholder="e.g. Jane Smith"
+              placeholder="Enter your full name"
               value={form.name}
               maxLength={50}
               onChange={e => set('name', e.target.value)}
@@ -272,7 +270,7 @@ function UserFormModal({ initial, onClose, onSave, saving, isSelf }) {
             />
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
               {!errs.name && (
-                <span style={{ fontSize: 11, color: '#94a3b8' }}>First letter of each word must be capital (e.g. Jane Smith)</span>
+                <span style={{ fontSize: 11, color: '#94a3b8' }}>Use the display name that should appear across the portal.</span>
               )}
               <span style={{ fontSize: 11, color: form.name.length > 40 ? '#f59e0b' : '#94a3b8', marginLeft: 'auto' }}>
                 {form.name.length}/50
@@ -301,7 +299,7 @@ function UserFormModal({ initial, onClose, onSave, saving, isSelf }) {
                 autoCapitalize="none"
                 autoCorrect="off"
                 spellCheck={false}
-                placeholder="e.g. jane.smith@sliit.lk"
+                placeholder="e.g. it23636226@my.sliit.lk"
                 value={form.email}
                 maxLength={100}
                 onChange={e => set('email', e.target.value)}
@@ -312,19 +310,19 @@ function UserFormModal({ initial, onClose, onSave, saving, isSelf }) {
             <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
               {isEdit
                 ? 'Email address cannot be changed after account creation'
-                : !errs.email ? 'Enter the user\'s institutional or campus email address' : ''
+                : !errs.email ? 'Use your campus email, for example it23636226@my.sliit.lk.' : ''
               }
             </div>
           </Field>
 
           {!isEdit && (
-            <Field label="Password" error={errs.password}>
+            <Field label="Password" required error={errs.password}>
               <div style={{ position: 'relative' }}>
                 <input
                   style={inputStyle(errs.password)}
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
-                  placeholder="Set a password (optional)"
+                  placeholder="Create a password"
                   value={form.password}
                   onChange={e => set('password', e.target.value)}
                   onFocus={e => { e.target.style.borderColor = accentColor; e.target.style.boxShadow = `0 0 0 3px ${accentColor}18` }}
@@ -346,7 +344,7 @@ function UserFormModal({ initial, onClose, onSave, saving, isSelf }) {
                 </button>
               </div>
               <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-                {!errs.password ? 'Optional — min. 8 characters. Required for email/password login.' : ''}
+                {!errs.password ? 'Minimum 8 characters.' : ''}
               </div>
             </Field>
           )}
