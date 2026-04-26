@@ -1231,6 +1231,12 @@ tr:hover td { background: #f8fafc; }
 }
 .rf-input:hover:not(:focus) { border-color: #64748b; background: #fff; }
 .rf-input:focus { outline: none; border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+.rf-error {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 7px; color: #b91c1c;
+  font-size: 12px; font-weight: 600;
+}
+.rf-error svg { flex-shrink: 0; }
 .rf-textarea { resize: vertical; min-height: 90px; }
 .rf-row { display: flex; gap: 14px; }
 
